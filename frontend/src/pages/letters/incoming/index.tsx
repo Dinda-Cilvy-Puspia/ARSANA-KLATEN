@@ -103,48 +103,54 @@ export default function IncomingLettersPage() {
             <p className="text-gray-600">Kelola surat masuk organisasi Anda</p>
           </div>
           <Link
-            href="/letters/incoming/create"
-            className="btn btn-primary flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Tambah Surat</span>
-          </Link>
+  href="/letters/incoming/create"
+  className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-[#023538] text-white hover:bg-[#034d4d] transition-colors"
+>
+  <Plus className="h-4 w-4" />
+  <span>Tambah Surat Masuk</span>
+</Link>
+
         </div>
 
-        {/* Search and Filters */}
-        <div className="card p-6">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari berdasarkan nomor surat, subjek, atau pengirim..."
-                  className="input pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="sm:w-48">
-              <select
-                className="input"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">Semua Sifat</option>
-                <option value="BIASA">Biasa</option>
-                <option value="TERBATAS">Terbatas</option>
-                <option value="RAHASIA">Rahasia</option>
-                <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
-                <option value="PENTING">Penting</option>
-              </select>
-            </div>
-            <button type="submit" className="btn btn-primary">
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
-        </div>
+{/* Search and Filters */}
+<div className="card p-6">
+  <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+    <div className="flex-1">
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Cari berdasarkan nomor surat, isi ringkas , atau penerima.."
+          className="input pl-10 bg-[#EBFDF9] border rounded-lg"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+    </div>
+
+    <div className="sm:w-48">
+      <select
+        className="input bg-[#EBFDF9] border rounded-lg"
+        value={categoryFilter}
+        onChange={(e) => setCategoryFilter(e.target.value)}
+      >
+        <option value="">Semua Kategori</option>
+        <option value="BIASA">Biasa</option>
+        <option value="TERBATAS">Terbatas</option>
+        <option value="RAHASIA">Rahasia</option>
+        <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
+        <option value="PENTING">Penting</option>
+      </select>
+    </div>
+
+    <button
+      type="submit"
+      className="flex items-center justify-center px-4 py-2 rounded-lg bg-[#12A168] text-white hover:bg-[#0e7d52] transition-colors"
+    >
+      <Search className="h-4 w-4" />
+    </button>
+  </form>
+</div>
 
         {/* Letters Table */}
         <div className="card overflow-hidden">
