@@ -102,10 +102,10 @@ export default function OutgoingLettersPage() {
           </div>
           <Link
             href="/letters/outgoing/create"
-            className="btn btn-primary flex items-center space-x-2"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-[#023538] text-white hover:bg-[#034d4d] transition-colors"
           >
             <Plus className="h-4 w-4" />
-            <span>Tambah Surat</span>
+            <span>Tambah Surat Keluar</span>
           </Link>
         </div>
 
@@ -118,7 +118,7 @@ export default function OutgoingLettersPage() {
                 <input
                   type="text"
                   placeholder="Cari berdasarkan nomor surat, subjek, atau penerima..."
-                  className="input pl-10"
+                  className="input pl-10 bg-[#EBFDF9] border rounded-lg"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -126,7 +126,7 @@ export default function OutgoingLettersPage() {
             </div>
             <div className="sm:w-48">
               <select
-                className="input"
+                className="input bg-[#EBFDF9] border rounded-lg"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value as LetterCategory | '')}
               >
@@ -137,7 +137,7 @@ export default function OutgoingLettersPage() {
                 <option value="ANNOUNCEMENT">Pengumuman</option>
               </select>
             </div>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="flex items-center justify-center px-4 py-2 rounded-lg bg-[#12A168] text-white hover:bg-[#0e7d52] transition-colors">
               <Search className="h-4 w-4" />
             </button>
           </form>
@@ -153,7 +153,7 @@ export default function OutgoingLettersPage() {
             <>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-[#EBFDF9]">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Surat
@@ -175,7 +175,7 @@ export default function OutgoingLettersPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-[#EBFDF9] divide-y divide-gray-200">
                     {letters.map((letter: OutgoingLetter) => (
                       <tr key={letter.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">

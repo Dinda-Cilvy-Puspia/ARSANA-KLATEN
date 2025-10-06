@@ -26,7 +26,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Surat Masuk', href: '/letters/incoming', icon: FileText },
   { name: 'Surat Keluar', href: '/letters/outgoing', icon: Send },
-  { name: 'Kalender', href: '/calendar', icon: Calendar },
+  { name: 'Agenda', href: '/calendar', icon: Calendar },
 ];
 
 export default function Layout({ children }: LayoutProps) {

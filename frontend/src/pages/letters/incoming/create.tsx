@@ -91,22 +91,22 @@ export default function CreateIncomingLetterPage() {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/letters/incoming"
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="section-title">Tambah Surat Masuk</h1>
-            <p className="section-description">Masukkan informasi surat masuk baru</p>
-          </div>
-        </div>
+<div className="flex items-center space-x-4">
+  <Link
+    href="/letters/incoming"
+    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+  >
+    <ArrowLeft className="h-5 w-5" />
+  </Link>
+  <div>
+    <h1 className="section-title text-[#023538]">Tambah Surat Masuk</h1>
+    <p className="section-description">Masukkan informasi surat masuk baru</p>
+  </div>
+</div>
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          <div className="card p-6 animate-slide-in">
+          <div className="card p-6 bg-[#EBFDF9] animate-slide-in">
             <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-primary-600" />
               Informasi Surat
@@ -270,7 +270,7 @@ export default function CreateIncomingLetterPage() {
           </div>
 
           {/* Invitation Section */}
-          <div className="card p-6 animate-slide-in" style={{ animationDelay: '0.1s' }}>
+          <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center mb-6">
               <input
                 {...register('isInvitation')}
@@ -358,94 +358,41 @@ export default function CreateIncomingLetterPage() {
             )}
           </div>
 
-          {/* File Upload Section */}
-          <div className="card p-6 animate-slide-in" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <Upload className="h-5 w-5 mr-2 text-primary-600" />
-              File Lampiran
-            </h2>
-            
-            {!selectedFile ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 hover:bg-primary-50 transition-all duration-200">
-                <input
-                  id="file"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="sr-only"
-                />
-                <label
-                  htmlFor="file"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <Upload className="h-16 w-16 text-gray-400 mb-4" />
-                  <span className="text-lg font-medium text-gray-900 mb-2">
-                    Klik untuk mengunggah file
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    atau seret dan lepas file di sini
-                  </span>
-                  <span className="text-xs text-gray-400 mt-2">
-                    PDF, DOC, DOCX, JPG, JPEG, PNG (maksimal 10MB)
-                  </span>
-                </label>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-success-50 to-success-100 rounded-xl border border-success-200">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="h-12 w-12 bg-success-200 rounded-lg flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-success-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={removeFile}
-                  className="text-danger-600 hover:text-danger-800 p-2 hover:bg-white rounded-lg transition-colors"
-                  title="Hapus file"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Form Actions */}
-          <div className="flex justify-end space-x-4 animate-slide-in" style={{ animationDelay: '0.3s' }}>
-            <Link
-              href="/letters/incoming"
-              className="btn btn-secondary"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={createLetterMutation.isLoading}
-              className="btn btn-primary"
-            >
-              {createLetterMutation.isLoading ? (
-                <>
-                  <div className="loading-spinner h-4 w-4 mr-2"></div>
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Simpan Surat
-                </>
-              )}
-            </button>
-          </div>
+<div
+  className="flex justify-start space-x-4 animate-slide-in"
+  style={{ animationDelay: '0.3s' }}
+>
+  <button
+    type="submit"
+    disabled={createLetterMutation.isLoading}
+    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+      createLetterMutation.isLoading
+        ? 'bg-[#12A168] opacity-70 cursor-not-allowed text-white'
+        : 'bg-[#12A168] hover:bg-[#0e7d52] text-white'
+    }`}
+  >
+    {createLetterMutation.isLoading ? (
+      <>
+        <div className="loading-spinner h-4 w-4 mr-2"></div>
+        Menyimpan...
+      </>
+    ) : (
+      <>
+        <FileText className="h-4 w-4 mr-2" />
+        Tambah
+      </>
+    )}
+  </button>
+
+  <Link
+    href="/letters/incoming"
+    className="btn btn-secondary"
+  >
+    <ArrowLeft className="h-4 w-4 mr-2" />
+    Batal
+  </Link>
+</div>
         </form>
       </div>
     </Layout>
