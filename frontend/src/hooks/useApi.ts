@@ -27,15 +27,18 @@ export const useIncomingLetters = (params?: {
   );
 };
 
-export const useIncomingLetter = (id: string) => {
+export const useIncomingLetter = (id?: string) => {
   return useQuery(
     ['incomingLetter', id],
-    () => apiClient.getIncomingLetterById(id),
+    () => apiClient.getIncomingLetterById(id!),
     {
-      enabled: !!id,
+      enabled: !!id, // hanya jalan kalau id ada
+      refetchOnMount: true, // refetch saat komponen mount ulang
+      refetchOnWindowFocus: false, // optional biar gak spam fetch
     }
   );
 };
+
 
 export const useCreateIncomingLetter = () => {
   const queryClient = useQueryClient();

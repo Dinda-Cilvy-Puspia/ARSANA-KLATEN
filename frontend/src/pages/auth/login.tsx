@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Shield, Sparkles } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Shield, Sparkles, XCircle } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import Image from "next/image"
 
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const { login, isAuthenticated, loading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false)
 
   const {
     register,
@@ -50,217 +51,215 @@ export default function LoginPage() {
 
   if (loading || isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="relative mb-8">
           <div className="w-20 h-20 relative animate-pulse">
-            <Image src="/ARSANA.svg" alt="Arsana Logo" fill className="object-contain" />
+            <Image src="/ARSANA.svg" alt="Arsana Logo" fill className="object-contain dark:filter dark:invert" />
           </div>
-          <div className="absolute -inset-8 bg-cyan-400 rounded-full opacity-20 animate-ping"></div>
+          <div className="absolute -inset-8 bg-blue-400 dark:bg-blue-500 rounded-full opacity-20 animate-ping"></div>
         </div>
         <div className="relative">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-800 border-t-cyan-400"></div>
-          <Zap className="absolute inset-0 m-auto h-6 w-6 text-cyan-400 animate-pulse" />
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 dark:border-gray-700 border-t-blue-400 dark:border-t-blue-500"></div>
+          <Zap className="absolute inset-0 m-auto h-6 w-6 text-blue-400 dark:text-blue-500 animate-pulse" />
         </div>
-        <p className="mt-6 text-sm text-gray-400 animate-pulse font-medium">Loading...</p>
+        <p className="mt-6 text-sm text-gray-600 dark:text-gray-400 animate-pulse font-medium">Loading...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-900">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-slate-900"></div>
-
-        <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-500 opacity-5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-purple-500 opacity-5 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-pink-500 opacity-3 rounded-full blur-3xl"></div>
-
-        <div
-          className="absolute w-64 h-64 bg-cyan-400 opacity-10 rounded-full blur-2xl animate-pulse"
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-50 via-sky-100 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-950">
+      {/* Background with subtle clouds or abstract shapes */}
+      <div className="absolute inset-0 z-0 opacity-80 dark:opacity-60 pointer-events-none">
+        {/* Subtle cloud-like radial gradients */}
+        <div className="absolute w-[400px] h-[400px] rounded-full bg-blue-200 dark:bg-blue-800 blur-3xl opacity-20 top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2 animate-blob"></div>
+        <div className="absolute w-[300px] h-[300px] rounded-full bg-indigo-200 dark:bg-indigo-800 blur-3xl opacity-20 bottom-1/4 right-1/4 transform translate-x-1/2 translate-y-1/2 animate-blob animation-delay-2000"></div>
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-purple-200 dark:bg-purple-800 blur-3xl opacity-15 top-1/2 left-0 transform -translate-x-1/2 -translate-y-1/2 animate-blob animation-delay-4000"></div>
+      </div>
+      
+      {/* Optional: Subtle mouse-follower effect */}
+      <div
+          className="absolute w-64 h-64 bg-blue-400 dark:bg-blue-500 opacity-5 rounded-full blur-2xl transition-all duration-300 ease-out"
           style={{
-            left: mousePosition.x * 0.02 + "px",
-            top: mousePosition.y * 0.02 + "px",
+            left: mousePosition.x + "px",
+            top: mousePosition.y + "px",
             transform: "translate(-50%, -50%)",
           }}
         ></div>
-        <div
-          className="absolute w-48 h-48 bg-purple-500 opacity-8 rounded-full blur-2xl animate-pulse delay-1000"
-          style={{
-            right: (typeof window !== "undefined" ? window.innerWidth - mousePosition.x : 0) * 0.015 + "px",
-            bottom: (typeof window !== "undefined" ? window.innerHeight - mousePosition.y : 0) * 0.015 + "px",
-            transform: "translate(50%, 50%)",
-          }}
-        ></div>
 
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:60px_60px]"></div>
-        </div>
-
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-ping"
-            style={{
-              left: Math.random() * 100 + "%",
-              top: Math.random() * 100 + "%",
-              animationDelay: Math.random() * 3 + "s",
-              animationDuration: 2 + Math.random() * 3 + "s",
-            }}
-          ></div>
-        ))}
-      </div>
-
-      <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
+      <div className="relative z-10 max-w-md w-full px-4">
+        {/* Adjusted styling for the main card to match the glassmorphism */}
+        <div className="bg-white/60 dark:bg-gray-800/60 rounded-3xl p-8 sm:p-12 shadow-xl border border-white dark:border-gray-700 space-y-8 backdrop-blur-xl transition-all duration-300">
+          
           <div className="flex flex-col items-center text-center">
-            <div className="relative mb-8 group">
-              <div className="absolute -inset-4 bg-cyan-400 rounded-full opacity-20 blur-lg group-hover:opacity-30 transition-opacity duration-500 animate-pulse"></div>
-              <div className="relative w-32 h-32 bg-slate-800 rounded-full border-2 border-cyan-400 flex items-center justify-center group-hover:border-cyan-300 transition-all duration-300 shadow-2xl">
-                <Image
-                  src="/ARSANA.svg"
-                  alt="Arsana Logo"
-                  width={60}
-                  height={60}
-                  className="object-contain filter brightness-0 invert"
-                  priority
+            <div className="w-full flex justify-center mb-6">
+              <Image
+                src="/ARSANA.svg"
+                alt="Arsana Logo"
+                width={300}
+                height={80}
+                className="w-[300px] h-auto object-contain transition-all duration-300 dark:filter dark:invert"
+                priority
+              />
+            </div>
+
+            <h1 className="text-4xl font-semibold text-gray-900 dark:text-white tracking-tight leading-tight">
+              Masuk ke Arsana
+            </h1>
+            <p className="mt-3 text-gray-600 dark:text-gray-400 text-base">
+              Sistem Arsip Surat Internal.
+            </p>
+            <p className="mt-3 text-gray-600 dark:text-gray-400 text-base">
+              Disdukcapil Klaten.
+            </p>
+            
+          </div>
+
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <input
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email format",
+                    },
+                  })}
+                  type="email"
+                  // Adjusted input style
+                  className="block w-full pl-12 pr-4 py-3 bg-white/50 dark:bg-gray-700/50 border border-white/50 dark:border-gray-600/50 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  placeholder="Masukan Email Disini Bro.."
+                  autoComplete="email"
                 />
               </div>
+              {errors.email && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <Shield className="w-4 h-4 mr-1" />
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <h1 className="text-6xl font-black text-cyan-400 tracking-tight animate-pulse">ARSANA</h1>
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-8 h-0.5 bg-cyan-400"></div>
-                <Zap className="w-4 h-4 text-cyan-400 animate-pulse" />
-                <div className="w-8 h-0.5 bg-purple-400"></div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPasswordModal(true)}
+                  className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors duration-200"
+                >
+                  Forgot password?
+                </button>
               </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <input
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters",
+                    },
+                  })}
+                  type={showPassword ? "text" : "password"}
+                  // Adjusted input style
+                  className="block w-full pl-12 pr-12 py-3 bg-white/50 dark:bg-gray-700/50 border border-white/50 dark:border-gray-600/50 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  placeholder="Masukin Password Disini Bro.."
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none transition-colors duration-200"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <Shield className="w-4 h-4 mr-1" />
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
-            <h2 className="mt-8 text-2xl font-bold text-white">Welcome Back</h2>
-            <p className="mt-2 text-gray-400">
-              Don't have an account?{" "}
-              <Link
-                href="/auth/register"
-                className="font-semibold text-cyan-400 hover:text-purple-400 transition-colors duration-300 relative group"
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="group relative w-full flex justify-center items-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <span className="relative z-10">Sign up now</span>
-                <span className="absolute inset-0 bg-cyan-400 opacity-0 group-hover:opacity-10 rounded blur-sm transition-opacity duration-300"></span>
-              </Link>
-            </p>
-          </div>
-
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-cyan-400 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-500 animate-pulse"></div>
-
-            <div className="relative bg-slate-800 backdrop-blur-xl shadow-2xl rounded-2xl p-8 border border-slate-700">
-              <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                <div className="space-y-6">
-                  <div className="group">
-                    <label htmlFor="email" className="block text-sm font-bold text-cyan-400 mb-3 flex items-center">
-                      <Mail className="w-4 h-4 mr-2" />
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <input
-                        {...register("email", {
-                          required: "Email is required",
-                          pattern: {
-                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                            message: "Invalid email format",
-                          },
-                        })}
-                        type="email"
-                        className="block w-full px-6 py-4 bg-slate-900 border-2 border-slate-600 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 text-white placeholder:text-gray-500 text-lg"
-                        placeholder="your@email.com"
-                      />
-                      <div className="absolute inset-0 rounded-xl bg-cyan-400 opacity-0 group-focus-within:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
-                    </div>
-                    {errors.email && (
-                      <p className="mt-3 text-sm text-red-400 flex items-center animate-in slide-in-from-left-2 duration-300">
-                        <Shield className="w-4 h-4 mr-2" />
-                        {errors.email.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="group">
-                    <div className="flex justify-between items-center mb-3">
-                      <label htmlFor="password" className="block text-sm font-bold text-purple-400 flex items-center">
-                        <Lock className="w-4 h-4 mr-2" />
-                        Password
-                      </label>
-                      <Link
-                        href="/auth/forgot-password"
-                        className="text-xs text-gray-400 hover:text-cyan-400 transition-colors duration-300 font-medium"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <div className="relative">
-                      <input
-                        {...register("password", {
-                          required: "Password is required",
-                          minLength: {
-                            value: 6,
-                            message: "Password must be at least 6 characters",
-                          },
-                        })}
-                        type={showPassword ? "text" : "password"}
-                        className="block w-full px-6 py-4 bg-slate-900 border-2 border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-300 text-white placeholder:text-gray-500 text-lg pr-14"
-                        placeholder="••••••••••"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-purple-400 focus:outline-none transition-colors duration-300"
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                      <div className="absolute inset-0 rounded-xl bg-purple-400 opacity-0 group-focus-within:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
-                    </div>
-                    {errors.password && (
-                      <p className="mt-3 text-sm text-red-400 flex items-center animate-in slide-in-from-left-2 duration-300">
-                        <Shield className="w-4 h-4 mr-2" />
-                        {errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-6">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="group relative w-full flex justify-center items-center py-5 px-8 bg-cyan-700 hover:bg-cyan-600 text-white text-lg font-bold rounded-xl focus:outline-none focus:ring-4 focus:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-2xl hover:shadow-cyan-500/50 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-cyan-600 opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-6 w-6 border-3 border-white/30 border-t-white mr-3"></div>
-                        <span className="relative z-10">PROCESSING...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="relative z-10 mr-3">ENTER ARSANA</span>
-                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300 relative z-10" />
-                        <Sparkles className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 group-hover:animate-spin transition-all duration-300" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/50 border-t-white mr-3"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <ArrowRight className="ml-2 -mr-1 h-5 w-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-200" />
+                  </>
+                )}
+              </button>
             </div>
-          </div>
+          </form>
 
-          <div className="text-center">
-            <p className="text-xs text-gray-500 flex items-center justify-center">
-              <span className="w-2 h-2 bg-cyan-400 rounded-full mr-2 animate-pulse"></span>© 2025 Arsana. All rights
-              reserved.
-              <span className="w-2 h-2 bg-purple-400 rounded-full ml-2 animate-pulse"></span>
+          <div className="text-center mt-6">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              © 2025 Arsana. KMI UNS 2025.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPasswordModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 dark:bg-opacity-85 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 max-w-sm w-full relative border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setShowForgotPasswordModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+            >
+              <XCircle className="h-6 w-6" />
+            </button>
+            <div className="text-center mb-6">
+              <Lock className="mx-auto h-12 w-12 text-blue-500 dark:text-blue-400 mb-4" />
+              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Reset Password</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Untuk keamanan, permintaan reset password harus melalui bantuan Admin.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <p className="text-gray-700 dark:text-gray-300 text-base">
+                Silakan hubungi:
+              </p>
+              <p className="flex items-center text-gray-800 dark:text-gray-200 font-medium">
+                <Mail className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />
+                <a href="mailto:support@arsana.com" className="hover:underline">leviathan13@student.uns.ac.id</a>
+              </p>
+              <p className="flex items-center text-gray-800 dark:text-gray-200 font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span>(021) 123-4567</span>
+              </p>
+            </div>
+            <button
+              onClick={() => setShowForgotPasswordModal(false)}
+              className="mt-8 w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-all duration-200"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

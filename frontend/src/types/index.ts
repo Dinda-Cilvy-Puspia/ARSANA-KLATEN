@@ -1,3 +1,4 @@
+// --- START OF FILE types.ts ---
 // =======================
 // 📌 Union Types
 // =======================
@@ -5,7 +6,17 @@ export type Role = 'ADMIN' | 'STAFF';
 export type LetterCategory = 'GENERAL' | 'INVITATION' | 'OFFICIAL' | 'ANNOUNCEMENT';
 export type LetterNature = 'BIASA' | 'TERBATAS' | 'RAHASIA' | 'SANGAT_RAHASIA' | 'PENTING';
 export type SecurityClass = 'BIASA';
-export type DispositionType = 'UMPEG' | 'PERENCANAAN' | 'KAUR_KEUANGAN' | 'KABID' | 'BIDANG1' | 'BIDANG2' | 'BIDANG3' | 'BIDANG4' | 'BIDANG5';
+export type DispositionMethodType = 'MANUAL' | 'SRIKANDI'; // Metode disposisi
+export type DispositionType =
+  | 'UMPEG'
+  | 'PERENCANAAN'
+  | 'KAUR_KEUANGAN'
+  | 'KABID'
+  | 'BIDANG1'
+  | 'BIDANG2'
+  | 'BIDANG3'
+  | 'BIDANG4'
+  | 'BIDANG5';
 export type NotificationType = 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
 
 // =======================
@@ -16,10 +27,9 @@ export interface User {
   email: string;
   name: string;
   role: Role;
-  createdAt: string; // ISO date string
+  createdAt: string;
 }
 
-// Mini version for embedded relations
 export type UserMini = Pick<User, 'id' | 'name' | 'email'>;
 
 // =======================
@@ -48,14 +58,14 @@ export interface AuthResponse {
 export interface IncomingLetter {
   id: string;
   letterNumber: string;
-  letterDate?: string; // ISO date string
+  letterDate?: string;
   letterNature: LetterNature;
   subject: string;
   sender: string;
   recipient: string;
   processor: string;
   note?: string;
-  receivedDate: string; // ISO date string
+  receivedDate: string;
   fileName?: string;
   filePath?: string;
   isInvitation: boolean;
@@ -63,6 +73,11 @@ export interface IncomingLetter {
   eventTime?: string;
   eventLocation?: string;
   eventNotes?: string;
+  // 🔽 tambahan baru sesuai schema
+  needsFollowUp: boolean;
+  followUpDeadline?: string;
+  dispositionMethod?: DispositionMethodType;
+  srikandiDispositionNumber?: string;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -72,15 +87,11 @@ export interface IncomingLetter {
 
 export interface OutgoingLetter {
   id: string;
-  createdDate: string; // ISO date string
-  letterDate: string; // ISO date string  
-  securityClass: SecurityClass;
-  classificationCode?: string;
-  serialNumber?: number;
+  createdDate: string;
+  letterDate: string;
   letterNumber: string;
   letterNature: LetterNature;
   subject: string;
-  executionDate?: string; // ISO date string
   sender: string;
   recipient: string;
   processor: string;
@@ -92,12 +103,22 @@ export interface OutgoingLetter {
   eventTime?: string;
   eventLocation?: string;
   eventNotes?: string;
+  executionDate?: string;
+  classificationCode?: string;
+  serialNumber?: number;
+  securityClass: SecurityClass;
+  // 🔽 tambahan baru
+  dispositionMethod?: DispositionMethodType;
+  srikandiDispositionNumber?: string;
   createdAt: string;
   updatedAt: string;
   userId: string;
   user: UserMini;
 }
 
+// =======================
+// 📌 Create Request Types
+// =======================
 export interface CreateIncomingLetterRequest {
   letterNumber: string;
   letterDate?: string;
@@ -113,19 +134,19 @@ export interface CreateIncomingLetterRequest {
   eventTime?: string;
   eventLocation?: string;
   eventNotes?: string;
+  needsFollowUp?: boolean;
+  followUpDeadline?: string;
+  dispositionMethod?: DispositionMethodType;
+  srikandiDispositionNumber?: string;
   file?: File | Blob;
 }
 
 export interface CreateOutgoingLetterRequest {
   createdDate: string;
   letterDate: string;
-  securityClass?: SecurityClass;
-  classificationCode?: string;
-  serialNumber?: number;
   letterNumber: string;
   letterNature?: LetterNature;
   subject: string;
-  executionDate?: string;
   sender: string;
   recipient: string;
   processor: string;
@@ -135,6 +156,13 @@ export interface CreateOutgoingLetterRequest {
   eventTime?: string;
   eventLocation?: string;
   eventNotes?: string;
+  executionDate?: string;
+  classificationCode?: string;
+  serialNumber?: number;
+  securityClass?: SecurityClass;
+  // 🔽 tambahan baru
+  dispositionMethod?: DispositionMethodType;
+  srikandiDispositionNumber?: string;
   file?: File | Blob;
 }
 
@@ -202,7 +230,7 @@ export interface NotificationResponse {
 export interface CalendarEvent {
   id: string;
   title: string;
-  date: string; // ISO date string
+  date: string;
   location?: string;
   type: 'incoming' | 'outgoing';
   letterNumber: string;
@@ -212,3 +240,4 @@ export interface CalendarEvent {
 export interface CalendarResponse {
   events: CalendarEvent[];
 }
+// --- END OF FILE types.ts ---

@@ -1,7 +1,8 @@
+// --- START OF FILE create.tsx ---
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, Upload, Calendar, X, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, Calendar, X, FileText, CheckCircle, BookOpen } from 'lucide-react'; // Tambahkan BookOpen
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateIncomingLetter } from '@/hooks/useApi';
 import Layout from '@/components/Layout/Layout';
@@ -25,6 +26,8 @@ export default function CreateIncomingLetterPage() {
   } = useForm<CreateIncomingLetterRequest>();
 
   const isInvitation = watch('isInvitation');
+  const needsFollowUp = watch('needsFollowUp');
+  const dispositionMethod = watch('dispositionMethod'); // Watch untuk metode disposisi
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -41,13 +44,16 @@ export default function CreateIncomingLetterPage() {
         receivedDate: new Date(data.receivedDate).toISOString(),
         letterDate: data.letterDate ? new Date(data.letterDate).toISOString() : undefined,
         eventDate: data.eventDate ? new Date(data.eventDate).toISOString() : undefined,
+        followUpDeadline: data.followUpDeadline ? new Date(data.followUpDeadline).toISOString() : undefined,
         // Ensure boolean conversion
         isInvitation: Boolean(data.isInvitation),
+        needsFollowUp: Boolean(data.needsFollowUp),
         // Handle optional fields
-        note: data.note || undefined,
+        note: data.note || undefined, // Keterangan diubah menjadi catatan, tetap opsional
         eventTime: data.eventTime || undefined,
         eventLocation: data.eventLocation || undefined,
         eventNotes: data.eventNotes || undefined,
+        srikandiDispositionNumber: dispositionMethod === 'SRIKANDI' ? data.srikandiDispositionNumber || undefined : undefined, // Hanya kirim jika Srikandi
         file: selectedFile || undefined,
       };
 
@@ -91,18 +97,18 @@ export default function CreateIncomingLetterPage() {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-<div className="flex items-center space-x-4">
-  <Link
-    href="/letters/incoming"
-    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-  >
-    <ArrowLeft className="h-5 w-5" />
-  </Link>
-  <div>
-    <h1 className="section-title text-[#023538]">Tambah Surat Masuk</h1>
-    <p className="section-description">Masukkan informasi surat masuk baru</p>
-  </div>
-</div>
+        <div className="flex items-center space-x-4">
+          <Link
+            href="/letters/incoming"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="section-title text-[#023538]">Tambah Surat Masuk</h1>
+            <p className="section-description">Masukkan informasi surat masuk baru</p>
+          </div>
+        </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -255,22 +261,71 @@ export default function CreateIncomingLetterPage() {
                 )}
               </div>
 
+              {/* Catatan (sebelumnya Keterangan) */}
               <div className="md:col-span-2 form-group">
                 <label className="form-label">
-                  Keterangan
+                  Catatan
                 </label>
                 <textarea
                   {...register('note')}
                   rows={3}
                   className="input"
-                  placeholder="Masukkan keterangan tambahan (opsional)"
+                  placeholder="Masukkan catatan tambahan (opsional)"
                 />
               </div>
             </div>
           </div>
 
-          {/* Invitation Section */}
+          {/* Disposition Method Section */}
           <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.1s' }}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
+              Metode Disposisi
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-group">
+                <label className="form-label form-label-required">
+                  Pilih Metode Disposisi
+                </label>
+                <select
+                  {...register('dispositionMethod', { required: 'Metode disposisi wajib dipilih' })}
+                  className={`input ${errors.dispositionMethod ? 'input-error' : ''}`}
+                  defaultValue=""
+                >
+                  <option value="">Pilih...</option>
+                  <option value="MANUAL">Manual</option>
+                  <option value="SRIKANDI">Srikandi</option>
+                </select>
+                {errors.dispositionMethod && (
+                  <p className="form-error">{errors.dispositionMethod.message}</p>
+                )}
+              </div>
+
+              {dispositionMethod === 'SRIKANDI' && (
+                <div className="form-group">
+                  <label className="form-label form-label-required">
+                    Nomor Disposisi Srikandi
+                  </label>
+                  <input
+                    {...register('srikandiDispositionNumber', {
+                      required: 'Nomor disposisi Srikandi wajib diisi jika metode Srikandi dipilih',
+                      minLength: { value: 3, message: 'Nomor disposisi minimal 3 karakter' }
+                    })}
+                    type="text"
+                    className={`input ${errors.srikandiDispositionNumber ? 'input-error' : ''}`}
+                    placeholder="Contoh: SRIKANDI/001/2024"
+                  />
+                  {errors.srikandiDispositionNumber && (
+                    <p className="form-error">{errors.srikandiDispositionNumber.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+
+          {/* Invitation Section */}
+          <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center mb-6">
               <input
                 {...register('isInvitation')}
@@ -358,41 +413,95 @@ export default function CreateIncomingLetterPage() {
             )}
           </div>
 
-          {/* Form Actions */}
-<div
-  className="flex justify-start space-x-4 animate-slide-in"
-  style={{ animationDelay: '0.3s' }}
->
-  <button
-    type="submit"
-    disabled={createLetterMutation.isLoading}
-    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-      createLetterMutation.isLoading
-        ? 'bg-[#12A168] opacity-70 cursor-not-allowed text-white'
-        : 'bg-[#12A168] hover:bg-[#0e7d52] text-white'
-    }`}
-  >
-    {createLetterMutation.isLoading ? (
-      <>
-        <div className="loading-spinner h-4 w-4 mr-2"></div>
-        Menyimpan...
-      </>
-    ) : (
-      <>
-        <FileText className="h-4 w-4 mr-2" />
-        Tambah
-      </>
-    )}
-  </button>
+          {/* Follow-up Section */}
+          <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center mb-6">
+              <input
+                {...register('needsFollowUp')}
+                type="checkbox"
+                id="needsFollowUp"
+                className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+              />
+              <label htmlFor="needsFollowUp" className="ml-3 text-sm font-medium text-gray-700">
+                Surat ini perlu ditindaklanjuti
+              </label>
+            </div>
 
-  <Link
-    href="/letters/incoming"
-    className="btn btn-secondary"
-  >
-    <ArrowLeft className="h-4 w-4 mr-2" />
-    Batal
-  </Link>
-</div>
+            {needsFollowUp && (
+              <div className="space-y-6 border-t pt-6 animate-fade-in">
+                <h3 className="text-md font-semibold text-gray-900 flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2 text-emerald-600" />
+                  Detail Tindak Lanjut
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="form-group">
+                    <label className="form-label form-label-required">
+                      Deadline Tindak Lanjut
+                    </label>
+                    <input
+                      {...register('followUpDeadline', {
+                        required: needsFollowUp ? 'Deadline tindak lanjut wajib diisi' : false,
+                        validate: (value) => {
+                          if (needsFollowUp && value) {
+                            const deadlineDate = new Date(value);
+                            const receivedDate = new Date(watch('receivedDate'));
+                            receivedDate.setHours(0, 0, 0, 0);
+                            deadlineDate.setHours(0, 0, 0, 0);
+
+                            if (deadlineDate <= receivedDate) {
+                                return 'Deadline tindak lanjut harus setelah tanggal diterima';
+                            }
+                          }
+                          return true;
+                        }
+                      })}
+                      type="date"
+                      className={`input ${errors.followUpDeadline ? 'input-error' : ''}`}
+                    />
+                    {errors.followUpDeadline && (
+                      <p className="form-error">{errors.followUpDeadline.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Form Actions */}
+          <div
+            className="flex justify-start space-x-4 animate-slide-in"
+            style={{ animationDelay: '0.4s' }}
+          >
+            <button
+              type="submit"
+              disabled={createLetterMutation.isLoading}
+              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                createLetterMutation.isLoading
+                  ? 'bg-[#12A168] opacity-70 cursor-not-allowed text-white'
+                  : 'bg-[#12A168] hover:bg-[#0e7d52] text-white'
+              }`}
+            >
+              {createLetterMutation.isLoading ? (
+                <>
+                  <div className="loading-spinner h-4 w-4 mr-2"></div>
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Tambah
+                </>
+              )}
+            </button>
+
+            <Link
+              href="/letters/incoming"
+              className="btn btn-secondary"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Batal
+            </Link>
+          </div>
         </form>
       </div>
     </Layout>

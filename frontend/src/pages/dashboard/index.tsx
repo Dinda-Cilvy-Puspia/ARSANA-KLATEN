@@ -34,7 +34,7 @@ export default function DashboardPage() {
       </div>
     );
   }
-
+  
   if (!isAuthenticated) return null;
 
   const incomingTotal = incomingLettersData?.pagination?.total || 0;

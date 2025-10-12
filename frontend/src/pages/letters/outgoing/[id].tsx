@@ -5,7 +5,6 @@ import {
   ArrowLeft, 
   Edit, 
   Trash2, 
-  Download, 
   Calendar,
   Send,
   User,
@@ -14,13 +13,15 @@ import {
   Clock,
   AlertTriangle,
   Info,
-  FileText
+  FileText,
+  Shield,
+  Hash
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOutgoingLetter, useDeleteOutgoingLetter } from '@/hooks/useApi';
 import Layout from '@/components/Layout/Layout';
 import FileDownload from '@/components/FileDownload';
-import { formatDate, formatDateTime } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 
@@ -38,6 +39,11 @@ const natureLabels = {
   RAHASIA: 'Rahasia',
   SANGAT_RAHASIA: 'Sangat Rahasia',
   PENTING: 'Penting',
+};
+
+const securityClassLabels = {
+  BIASA: 'Biasa',
+  // Add other security classes if they exist in types.ts
 };
 
 const DetailItem = ({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) => (
@@ -208,18 +214,22 @@ export default function OutgoingLetterDetailPage() {
                     </span>
                   </DetailItem>
                   
-                  <DetailItem icon={Tag} label="Klasifikasi Keamanan">
-                    {letter.securityClass}
+                  <DetailItem icon={Shield} label="Klasifikasi Keamanan">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
+                        letter.securityClass === 'BIASA' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                      {securityClassLabels[letter.securityClass as keyof typeof securityClassLabels] || letter.securityClass}
+                    </span>
                   </DetailItem>
                   
                   {letter.classificationCode && (
-                    <DetailItem icon={Tag} label="Kode Klasifikasi">
+                    <DetailItem icon={Hash} label="Kode Klasifikasi">
                       {letter.classificationCode}
                     </DetailItem>
                   )}
                   
                   {letter.serialNumber && (
-                    <DetailItem icon={Tag} label="Nomor Urut">
+                    <DetailItem icon={Hash} label="Nomor Urut">
                       {letter.serialNumber}
                     </DetailItem>
                   )}

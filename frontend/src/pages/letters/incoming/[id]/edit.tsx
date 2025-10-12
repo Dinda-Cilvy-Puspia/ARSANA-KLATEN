@@ -17,8 +17,15 @@ export default function EditIncomingLetterPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch existing letter data
-  const { data: letterData, isLoading: fetchingLetter, error: fetchError } = useIncomingLetter(id as string);
+  const { data: letterData, isLoading: fetchingLetter, error: fetchError } =
+  useIncomingLetter(typeof id === 'string' ? id : undefined);
+
   const updateLetterMutation = useUpdateIncomingLetter();
+
+  console.log('🔥 ID:', id);
+  console.log('📦 Letter Data:', letterData);
+  console.log('⚠️ Fetch Error:', fetchError);
+
 
   const {
     register,
@@ -33,26 +40,28 @@ export default function EditIncomingLetterPage() {
 
   // Populate form with existing data
   useEffect(() => {
-    if (letterData && letterData.data) {
-      const letter = letterData.data;
-      reset({
-        letterNumber: letter.letterNumber,
-        letterDate: letter.letterDate ? new Date(letter.letterDate).toISOString().split('T')[0] : '',
-        letterNature: letter.letterNature || 'BIASA',
-        subject: letter.subject,
-        sender: letter.sender,
-        recipient: letter.recipient,
-        processor: letter.processor,
-        note: letter.note || '',
-        receivedDate: new Date(letter.receivedDate).toISOString().split('T')[0],
-        isInvitation: letter.isInvitation,
-        eventDate: letter.eventDate ? new Date(letter.eventDate).toISOString().split('T')[0] : '',
-        eventTime: letter.eventTime || '',
-        eventLocation: letter.eventLocation || '',
-        eventNotes: letter.eventNotes || '',
-      });
-    }
-  }, [letterData, reset]);
+    if (!letterData?.data) return;
+    if (!id) return; // pastikan id sudah ready dari router
+
+    const letter = letterData;
+    reset({
+      letterNumber: letter.letterNumber ?? '',
+      letterDate: letter.letterDate ? new Date(letter.letterDate).toISOString().split('T')[0] : '',
+      letterNature: letter.letterNature ?? 'BIASA',
+      subject: letter.subject ?? '',
+      sender: letter.sender ?? '',
+      recipient: letter.recipient ?? '',
+      processor: letter.processor ?? '',
+      note: letter.note ?? '',
+      receivedDate: letter.receivedDate ? new Date(letter.receivedDate).toISOString().split('T')[0] : '',
+      isInvitation: Boolean(letter.isInvitation),
+      eventDate: letter.eventDate ? new Date(letter.eventDate).toISOString().split('T')[0] : '',
+      eventTime: letter.eventTime ?? '',
+      eventLocation: letter.eventLocation ?? '',
+      eventNotes: letter.eventNotes ?? '',
+    });
+  }, [id, letterData, reset]);
+
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -182,7 +191,7 @@ export default function EditIncomingLetterPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Edit Surat Masuk</h1>
                 <p className="text-sm text-gray-600">
-                  Perbarui informasi surat masuk #{letterData.data.letterNumber}
+                  Perbarui informasi surat masuk #{letterData.letterNumber}
                 </p>
               </div>
             </div>
@@ -464,13 +473,13 @@ export default function EditIncomingLetterPage() {
             
             <div className="space-y-4">
               {/* Current file */}
-              {letterData.data.fileName && !selectedFile && (
+              {letterData.fileName && !selectedFile && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <FileText className="h-8 w-8 text-gray-400" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{letterData.data.fileName}</p>
+                        <p className="text-sm font-medium text-gray-900">{letterData.fileName}</p>
                         <p className="text-xs text-gray-500">File saat ini</p>
                       </div>
                     </div>
@@ -481,7 +490,7 @@ export default function EditIncomingLetterPage() {
               {/* File input */}
               <div>
                 <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-2">
-                  {letterData.data.fileName ? 'Ganti File Dokumen' : 'Upload File Dokumen'} (Opsional)
+                  {letterData.fileName ? 'Ganti File Dokumen' : 'Upload File Dokumen'} (Opsional)
                 </label>
                 <div className="flex items-center justify-center w-full">
                   <label

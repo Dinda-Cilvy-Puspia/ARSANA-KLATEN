@@ -1,3 +1,4 @@
+// --- START OF FILE [id].tsx ---
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -13,7 +14,8 @@ import {
   MapPin,
   Clock,
   AlertTriangle,
-  Info
+  Info,
+  CheckCircle // Import icon CheckCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIncomingLetter, useDeleteIncomingLetter } from '@/hooks/useApi';
@@ -124,6 +126,9 @@ export default function IncomingLetterDetailPage() {
 
   const categoryStyle = natureStyles[letter.letterNature as keyof typeof natureStyles] || natureStyles.BIASA;
 
+  // Determine if deadline has passed for styling
+  const isDeadlinePassed = letter.needsFollowUp && letter.followUpDeadline && new Date(letter.followUpDeadline) < new Date();
+
   return (
     <Layout>
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 animate-fade-in">
@@ -147,7 +152,7 @@ export default function IncomingLetterDetailPage() {
             </div>
             <div className="mt-4 flex md:mt-0 md:ml-4 space-x-2">
               <Link
-                href={`/letters/incoming/edit/${letter.id}`}
+                href={`/letters/incoming/${letter.id}/edit`} // Ubah ke path edit
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
               >
                 <Edit className="h-4 w-4 mr-2" />
@@ -261,6 +266,35 @@ export default function IncomingLetterDetailPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Follow-up Information */}
+            {letter.needsFollowUp && (
+              <div className={`bg-white shadow-sm rounded-xl overflow-hidden border ${isDeadlinePassed ? 'border-red-300' : 'border-emerald-200'}`}>
+                <div className="p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-5 flex items-center">
+                    <div className={`p-2 rounded-lg mr-3 ${isDeadlinePassed ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                      <CheckCircle className={`h-5 w-5 ${isDeadlinePassed ? 'text-red-600' : 'text-emerald-600'}`} />
+                    </div>
+                    Informasi Tindak Lanjut
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                    {letter.followUpDeadline && (
+                      <DetailItem icon={Calendar} label="Deadline Tindak Lanjut">
+                        <span className={`${isDeadlinePassed ? 'text-red-600 font-bold' : ''}`}>
+                            {formatDate(letter.followUpDeadline)}
+                        </span>
+                        {isDeadlinePassed && (
+                            <span className="ml-2 text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                                Lewat Batas Waktu!
+                            </span>
+                        )}
+                      </DetailItem>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

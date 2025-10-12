@@ -166,6 +166,9 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 const PORT = process.env.PORT || 5000;
 
+const listEndpoints = require('express-list-endpoints');
+console.table(listEndpoints(app));
+
 app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -177,5 +180,10 @@ app.listen(PORT, () => {
     devLogger.info('Detailed request logging:', process.env.DETAILED_REQUEST_LOGGING === 'true' ? 'enabled' : 'disabled');
   }
 });
+
+console.log('Server timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+console.log('Server local time:', new Date().toString());
+console.log('Server UTC time:', new Date().toUTCString());
+
 
 export default app;

@@ -32,18 +32,25 @@ model IncomingLetter {
   isInvitation  Boolean       @default(false)
   eventDate     DateTime?
   eventLocation String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  userId        String
-  eventNotes    String?
   eventTime     String?
+  eventNotes    String?
   letterDate    DateTime?
   letterNature  LetterNature  @default(BIASA)
   note          String?
   processor     String
   recipient     String
-  dispositions  Disposition[]
+  userId        String
   user          User          @relation(fields: [userId], references: [id])
+  dispositions  Disposition[]
+
+  // 🔽 Tambahan baru
+  dispositionMethod      DispositionMethod? // Manual atau Srikandi
+  srikandiDispositionNumber String?          // Nomor disposisi Srikandi
+  needsFollowUp          Boolean @default(false)
+  followUpDeadline       DateTime?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@map("incoming_letters")
 }
@@ -74,6 +81,10 @@ model OutgoingLetter {
   sender             String
   serialNumber       Int?
   user               User          @relation(fields: [userId], references: [id])
+
+  // 🔽 Tambahan baru
+  dispositionMethod      DispositionMethod? // Manual atau Srikandi
+  srikandiDispositionNumber String?          // Nomor disposisi jika Srikandi digunakan
 
   @@map("outgoing_letters")
 }
@@ -118,6 +129,11 @@ enum LetterNature {
 
 enum SecurityClass {
   BIASA
+}
+
+enum DispositionMethod {
+  MANUAL
+  SRIKANDI
 }
 
 enum DispositionType {
