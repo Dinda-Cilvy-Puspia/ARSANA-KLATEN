@@ -2,129 +2,177 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { formatDate } from '../utils/helpers';
 
 const prisma = new PrismaClient();
 
-// Validation schemas
-const createDispositionSchema = z.object({
-  incomingLetterId: z.string().cuid('Invalid incoming letter ID'),
-  dispositionTo: z.enum(['UMPEG', 'PERENCANAAN', 'KAUR_KEUANGAN', 'KABID', 'BIDANG1', 'BIDANG2', 'BIDANG3', 'BIDANG4', 'BIDANG5']),
-  notes: z.string().max(1000, 'Notes maksimal 1000 karakter').optional().nullable()
+const dispositionSchema = z.object({
+  incomingLetterId: z.string().uuid('ID surat masuk tidak valid'),
+  recipient: z.string()
+    .min(2, 'Nama penerima disposisi minimal 2 karakter')
+    .max(100, 'Nama penerima disposisi maksimal 100 karakter'),
+  instruction: z.string()
+    .min(5, 'Instruksi minimal 5 karakter')
+    .max(1000, 'Instruksi maksimal 1000 karakter'),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT'], {
+    errorMap: () => ({ message: 'Prioritas tidak valid' })
+  }).default('MEDIUM'),
+  dueDate: z.string()
+    .datetime('Format tanggal tidak valid')
+    .optional()
+    .nullable(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'], {
+    errorMap: () => ({ message: 'Status tidak valid' })
+  }).default('PENDING'),
+  notes: z.string()
+    .max(1000, 'Catatan maksimal 1000 karakter')
+    .optional()
+    .nullable()
 });
 
-const updateDispositionSchema = createDispositionSchema.partial();
+const updateDispositionSchema = z.object({
+  recipient: z.string()
+    .min(2, 'Nama penerima disposisi minimal 2 karakter')
+    .max(100, 'Nama penerima disposisi maksimal 100 karakter')
+    .optional(),
+  instruction: z.string()
+    .min(5, 'Instruksi minimal 5 karakter')
+    .max(1000, 'Instruksi maksimal 1000 karakter')
+    .optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
+    .optional(),
+  dueDate: z.string()
+    .datetime('Format tanggal tidak valid')
+    .optional()
+    .nullable(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+    .optional(),
+  notes: z.string()
+    .max(1000, 'Catatan maksimal 1000 karakter')
+    .optional()
+    .nullable()
+});
 
 export const createDisposition = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const data = createDispositionSchema.parse(req.body);
+    const data = dispositionSchema.parse(req.body);
 
-    // Verify the incoming letter exists and user has access
+    // Check if incoming letter exists
     const incomingLetter = await prisma.incomingLetter.findUnique({
-      where: { id: data.incomingLetterId }
-    });
-
-    if (!incomingLetter) {
-      res.status(404).json({ error: 'Incoming letter not found' });
-      return;
-    }
-
-    // Check if user owns the letter or is admin
-    if (incomingLetter.userId !== req.user!.userId && req.user!.role !== 'ADMIN') {
-      res.status(403).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    const disposition = await prisma.disposition.create({
-      data: {
-        incomingLetterId: data.incomingLetterId,
-        dispositionTo: data.dispositionTo,
-        notes: data.notes || null
-      },
+      where: { id: data.incomingLetterId },
       include: {
-        incomingLetter: {
+        user: {
           select: {
             id: true,
-            letterNumber: true,
-            subject: true
+            name: true,
+            email: true
           }
         }
       }
     });
 
-    res.status(201).json(disposition);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input data', details: error.errors });
-      return;
-    }
-    console.error('Create disposition error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-export const getDispositionsByLetter = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { letterId } = req.params;
-
-    // Verify the incoming letter exists and user has access
-    const incomingLetter = await prisma.incomingLetter.findUnique({
-      where: { id: letterId }
-    });
-
     if (!incomingLetter) {
-      res.status(404).json({ error: 'Incoming letter not found' });
+      res.status(404).json({ 
+        error: 'Surat masuk tidak ditemukan',
+        details: [{ field: 'incomingLetterId', message: 'ID surat masuk tidak valid' }]
+      });
       return;
     }
 
-    // Check if user owns the letter or is admin
-    if (incomingLetter.userId !== req.user!.userId && req.user!.role !== 'ADMIN') {
-      res.status(403).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    const dispositions = await prisma.disposition.findMany({
-      where: { incomingLetterId: letterId },
+    // Create disposition
+    const disposition = await prisma.disposition.create({
+      data: {
+        incomingLetterId: data.incomingLetterId,
+        recipient: data.recipient,
+        instruction: data.instruction,
+        priority: data.priority || 'MEDIUM',
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        status: data.status || 'PENDING',
+        notes: data.notes || null,
+        createdById: req.user!.userId
+      },
       include: {
         incomingLetter: {
           select: {
             id: true,
             letterNumber: true,
-            subject: true
+            subject: true,
+            sender: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
-      },
-      orderBy: { createdAt: 'desc' }
+      }
     });
 
-    res.json(dispositions);
+    // Create notification for disposition recipient (if different from creator)
+    if (data.recipient !== req.user!.name) {
+      await prisma.notification.create({
+        data: {
+          title: 'Disposisi Baru',
+          message: `Anda mendapat disposisi baru untuk surat "${incomingLetter.subject}" dari ${req.user!.name}`,
+          type: 'INFO',
+          userId: null // Global notification - in production, find user by name and assign
+        }
+      });
+    }
+
+    res.status(201).json({
+      message: 'Disposisi berhasil dibuat',
+      data: disposition
+    });
   } catch (error) {
-    console.error('Get dispositions error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof z.ZodError) {
+      const formattedErrors = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message
+      }));
+      
+      res.status(400).json({ 
+        error: 'Data yang dimasukkan tidak valid', 
+        details: formattedErrors 
+      });
+      return;
+    }
+    
+    console.error('Create disposition error:', error);
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server', 
+      message: 'Silakan coba lagi nanti' 
+    });
   }
 };
 
 export const getAllDispositions = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { page = 1, limit = 10, dispositionTo } = req.query;
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const whereClause: any = {};
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+    const priority = req.query.priority as string;
     
-    // If not admin, only show dispositions for user's letters
-    if (req.user!.role !== 'ADMIN') {
-      whereClause.incomingLetter = {
-        userId: req.user!.userId
-      };
+    const skip = (page - 1) * limit;
+    
+    const where: any = {};
+    
+    if (status) {
+      where.status = status;
     }
-
-    // Filter by disposition type if provided
-    if (dispositionTo && typeof dispositionTo === 'string') {
-      whereClause.dispositionTo = dispositionTo;
+    
+    if (priority) {
+      where.priority = priority;
     }
 
     const [dispositions, total] = await Promise.all([
       prisma.disposition.findMany({
-        where: whereClause,
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
         include: {
           incomingLetter: {
             select: {
@@ -134,27 +182,34 @@ export const getAllDispositions = async (req: AuthenticatedRequest, res: Respons
               sender: true,
               receivedDate: true
             }
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
           }
-        },
-        skip,
-        take: Number(limit),
-        orderBy: { createdAt: 'desc' }
+        }
       }),
-      prisma.disposition.count({ where: whereClause })
+      prisma.disposition.count({ where })
     ]);
 
     res.json({
       dispositions,
       pagination: {
-        current: Number(page),
-        limit: Number(limit),
+        current: page,
+        limit,
         total,
-        pages: Math.ceil(total / Number(limit))
+        pages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
     console.error('Get all dispositions error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server',
+      message: 'Gagal mengambil data disposisi'
+    });
   }
 };
 
@@ -166,34 +221,93 @@ export const getDisposition = async (req: AuthenticatedRequest, res: Response): 
       where: { id },
       include: {
         incomingLetter: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+          select: {
+            id: true,
+            letterNumber: true,
+            subject: true,
+            sender: true,
+            recipient: true,
+            receivedDate: true,
+            letterNature: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
       }
     });
 
     if (!disposition) {
-      res.status(404).json({ error: 'Disposition not found' });
-      return;
-    }
-
-    // Check if user owns the letter or is admin
-    if (disposition.incomingLetter.userId !== req.user!.userId && req.user!.role !== 'ADMIN') {
-      res.status(403).json({ error: 'Unauthorized' });
+      res.status(404).json({ 
+        error: 'Disposisi tidak ditemukan',
+        message: 'ID disposisi tidak valid atau telah dihapus'
+      });
       return;
     }
 
     res.json(disposition);
   } catch (error) {
     console.error('Get disposition error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server',
+      message: 'Gagal mengambil detail disposisi'
+    });
+  }
+};
+
+export const getDispositionsByLetter = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { letterId } = req.params;
+
+    // Check if letter exists
+    const letter = await prisma.incomingLetter.findUnique({
+      where: { id: letterId }
+    });
+
+    if (!letter) {
+      res.status(404).json({ 
+        error: 'Surat masuk tidak ditemukan',
+        message: 'ID surat tidak valid atau telah dihapus'
+      });
+      return;
+    }
+
+    const dispositions = await prisma.disposition.findMany({
+      where: { incomingLetterId: letterId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        incomingLetter: {
+          select: {
+            id: true,
+            letterNumber: true,
+            subject: true,
+            sender: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      dispositions,
+      total: dispositions.length
+    });
+  } catch (error) {
+    console.error('Get dispositions by letter error:', error);
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server',
+      message: 'Gagal mengambil disposisi surat'
+    });
   }
 };
 
@@ -205,46 +319,97 @@ export const updateDisposition = async (req: AuthenticatedRequest, res: Response
     const existingDisposition = await prisma.disposition.findUnique({
       where: { id },
       include: {
-        incomingLetter: true
-      }
-    });
-
-    if (!existingDisposition) {
-      res.status(404).json({ error: 'Disposition not found' });
-      return;
-    }
-
-    // Check if user owns the letter or is admin
-    if (existingDisposition.incomingLetter.userId !== req.user!.userId && req.user!.role !== 'ADMIN') {
-      res.status(403).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    const updatedDisposition = await prisma.disposition.update({
-      where: { id },
-      data: {
-        ...(data.dispositionTo && { dispositionTo: data.dispositionTo }),
-        ...(data.notes !== undefined && { notes: data.notes || null })
-      },
-      include: {
         incomingLetter: {
           select: {
-            id: true,
-            letterNumber: true,
             subject: true
           }
         }
       }
     });
 
-    res.json(updatedDisposition);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input data', details: error.errors });
+    if (!existingDisposition) {
+      res.status(404).json({ 
+        error: 'Disposisi tidak ditemukan',
+        message: 'ID disposisi tidak valid atau telah dihapus'
+      });
       return;
     }
+
+    // Check if user has permission to update
+    if (existingDisposition.createdById !== req.user!.userId && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ 
+        error: 'Tidak memiliki akses',
+        message: 'Anda tidak memiliki izin untuk mengubah disposisi ini'
+      });
+      return;
+    }
+
+    const updateData: any = {
+      ...(data.recipient && { recipient: data.recipient }),
+      ...(data.instruction && { instruction: data.instruction }),
+      ...(data.priority && { priority: data.priority }),
+      ...(data.dueDate !== undefined && { dueDate: data.dueDate ? new Date(data.dueDate) : null }),
+      ...(data.status && { status: data.status }),
+      ...(data.notes !== undefined && { notes: data.notes || null })
+    };
+
+    const disposition = await prisma.disposition.update({
+      where: { id },
+      data: updateData,
+      include: {
+        incomingLetter: {
+          select: {
+            id: true,
+            letterNumber: true,
+            subject: true,
+            sender: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Create notification if status changed to COMPLETED
+    if (data.status === 'COMPLETED' && existingDisposition.status !== 'COMPLETED') {
+      await prisma.notification.create({
+        data: {
+          title: 'Disposisi Selesai',
+          message: `Disposisi untuk surat "${existingDisposition.incomingLetter.subject}" telah diselesaikan`,
+          type: 'SUCCESS',
+          userId: null // Global notification
+        }
+      });
+    }
+
+    res.json({
+      message: 'Disposisi berhasil diperbarui',
+      data: disposition
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const formattedErrors = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message
+      }));
+      
+      res.status(400).json({ 
+        error: 'Data yang dimasukkan tidak valid', 
+        details: formattedErrors 
+      });
+      return;
+    }
+    
     console.error('Update disposition error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server',
+      message: 'Gagal memperbarui disposisi'
+    });
   }
 };
 
@@ -253,20 +418,23 @@ export const deleteDisposition = async (req: AuthenticatedRequest, res: Response
     const { id } = req.params;
 
     const existingDisposition = await prisma.disposition.findUnique({
-      where: { id },
-      include: {
-        incomingLetter: true
-      }
+      where: { id }
     });
 
     if (!existingDisposition) {
-      res.status(404).json({ error: 'Disposition not found' });
+      res.status(404).json({ 
+        error: 'Disposisi tidak ditemukan',
+        message: 'ID disposisi tidak valid atau telah dihapus'
+      });
       return;
     }
 
-    // Check if user owns the letter or is admin
-    if (existingDisposition.incomingLetter.userId !== req.user!.userId && req.user!.role !== 'ADMIN') {
-      res.status(403).json({ error: 'Unauthorized' });
+    // Check if user has permission to delete
+    if (existingDisposition.createdById !== req.user!.userId && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ 
+        error: 'Tidak memiliki akses',
+        message: 'Anda tidak memiliki izin untuk menghapus disposisi ini'
+      });
       return;
     }
 
@@ -274,9 +442,14 @@ export const deleteDisposition = async (req: AuthenticatedRequest, res: Response
       where: { id }
     });
 
-    res.status(204).send();
+    res.status(200).json({
+      message: 'Disposisi berhasil dihapus'
+    });
   } catch (error) {
     console.error('Delete disposition error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server',
+      message: 'Gagal menghapus disposisi'
+    });
   }
 };

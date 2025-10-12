@@ -54,7 +54,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="relative mb-8">
           <div className="w-20 h-20 relative animate-pulse">
-            <Image src="/ARSANA.svg" alt="Arsana Logo" fill className="object-contain dark:filter dark:invert" />
+            <Image src="/ARSANA.svg" alt="Arsana Logo" fill className="object-contain" />
           </div>
           <div className="absolute -inset-8 bg-blue-400 dark:bg-blue-500 rounded-full opacity-20 animate-ping"></div>
         </div>
@@ -98,7 +98,7 @@ export default function LoginPage() {
                 alt="Arsana Logo"
                 width={300}
                 height={80}
-                className="w-[300px] h-auto object-contain transition-all duration-300 dark:filter dark:invert"
+                className="w-[300px] h-auto object-contain transition-all duration-300 "
                 priority
               />
             </div>
