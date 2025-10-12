@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,15 +8,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(STAFF)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
+  id              String           @id @default(cuid())
+  email           String           @unique
+  password        String
+  name            String
+  role            Role             @default(STAFF)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   incomingLetters IncomingLetter[]
   outgoingLetters OutgoingLetter[]
 
@@ -27,86 +22,70 @@ model User {
 }
 
 model IncomingLetter {
-  id              String            @id @default(cuid())
-  // Fields untuk Surat Masuk
-  receivedDate    DateTime          // Tanggal Penerimaan Surat
-  letterNumber    String            @unique // Nomor Surat
-  letterDate      DateTime?         // Tanggal Surat
-  letterNature    LetterNature      @default(BIASA) // Sifat Surat
-  subject         String            // Isi Ringkas
-  sender          String            // Dari
-  recipient       String            // Kepada
-  processor       String            // Pengolah
-  note            String?           // Ket: Srikandi/manual
-  
-  // File attachment
-  fileName        String?
-  filePath        String?
-  
-  // Invitation specific fields (untuk Undangan Masuk)
-  isInvitation    Boolean           @default(false)
-  eventDate       DateTime?         // Tanggal Pelaksanaan
-  eventTime       String?           // Waktu pelaksanaan
-  eventLocation   String?           // Tempat pelaksanaan
-  eventNotes      String?           // Catatan pelaksanaan
-  
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  
-  // Relations
-  userId          String
-  user            User              @relation(fields: [userId], references: [id])
-  dispositions    Disposition[]
+  id            String        @id @default(cuid())
+  letterNumber  String        @unique
+  subject       String
+  sender        String
+  receivedDate  DateTime
+  fileName      String?
+  filePath      String?
+  isInvitation  Boolean       @default(false)
+  eventDate     DateTime?
+  eventLocation String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userId        String
+  eventNotes    String?
+  eventTime     String?
+  letterDate    DateTime?
+  letterNature  LetterNature  @default(BIASA)
+  note          String?
+  processor     String
+  recipient     String
+  dispositions  Disposition[]
+  user          User          @relation(fields: [userId], references: [id])
 
   @@map("incoming_letters")
 }
 
 model OutgoingLetter {
-  id                    String            @id @default(cuid())
-  // Fields untuk Surat Keluar
-  createdDate          DateTime          // Tanggal Pembuatan Surat
-  letterDate           DateTime          // Tanggal Surat
-  securityClass        SecurityClass     @default(BIASA) // Klasifikasi Keamanan
-  classificationCode   String?           // Kode Klasifikasi
-  serialNumber         Int?              // Nomor Urut
-  letterNumber         String            @unique // Nomor Surat (contoh: B/100.3.10/1/2025/16/M)
-  letterNature         LetterNature      @default(BIASA) // Sifat Surat
-  subject              String            // Isi Ringkas
-  executionDate        DateTime?         // Tanggal Pelaksanaan Untuk Undangan
-  sender               String            // Dari
-  recipient            String            // Kepada
-  processor            String            // Pengolah
-  note                 String?           // Ket: Srikandi/manual
-  
-  // File attachment
-  fileName             String?
-  filePath             String?
-  
-  // Invitation specific fields
-  isInvitation         Boolean           @default(false)
-  eventDate            DateTime?
-  eventTime            String?
-  eventLocation        String?
-  eventNotes           String?
-  
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  
-  // Relations
-  userId               String
-  user                 User              @relation(fields: [userId], references: [id])
+  id                 String        @id @default(cuid())
+  letterNumber       String        @unique
+  subject            String
+  recipient          String
+  fileName           String?
+  filePath           String?
+  isInvitation       Boolean       @default(false)
+  eventDate          DateTime?
+  eventLocation      String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  userId             String
+  classificationCode String?
+  createdDate        DateTime
+  eventNotes         String?
+  eventTime          String?
+  executionDate      DateTime?
+  letterDate         DateTime
+  letterNature       LetterNature  @default(BIASA)
+  note               String?
+  processor          String
+  securityClass      SecurityClass @default(BIASA)
+  sender             String
+  serialNumber       Int?
+  user               User          @relation(fields: [userId], references: [id])
 
   @@map("outgoing_letters")
 }
 
 model Disposition {
-  id                String         @id @default(cuid())
-  incomingLetterId  String
-  incomingLetter    IncomingLetter @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
-  dispositionTo     DispositionType
-  notes             String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id               String          @id @default(cuid())
+  incomingLetterId String
+  dispositionTo    DispositionType
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  incomingLetter   IncomingLetter  @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
 
   @@map("dispositions")
 }
@@ -130,27 +109,27 @@ enum Role {
 }
 
 enum LetterNature {
-  BIASA         // Biasa
-  TERBATAS      // Terbatas
-  RAHASIA       // Rahasia
-  SANGAT_RAHASIA // Sangat Rahasia
-  PENTING       // Penting (untuk surat keluar)
+  BIASA
+  TERBATAS
+  RAHASIA
+  SANGAT_RAHASIA
+  PENTING
 }
 
 enum SecurityClass {
-  BIASA         // Klasifikasi Keamanan: Biasa
+  BIASA
 }
 
 enum DispositionType {
-  UMPEG         // Umpeg
-  PERENCANAAN   // Perencanaan
-  KAUR_KEUANGAN // Kaur Keuangan
-  KABID         // Kabid
-  BIDANG1       // Bidang 1
-  BIDANG2       // Bidang 2
-  BIDANG3       // Bidang 3
-  BIDANG4       // Bidang 4
-  BIDANG5       // Bidang 5
+  UMPEG
+  PERENCANAAN
+  KAUR_KEUANGAN
+  KABID
+  BIDANG1
+  BIDANG2
+  BIDANG3
+  BIDANG4
+  BIDANG5
 }
 
 enum NotificationType {

@@ -101,7 +101,7 @@ export default function CreateOutgoingLetterPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="card p-6">
+          <div className="card p-6 bg-[#EBFDF9]">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
               Informasi Surat
             </h2>
@@ -191,7 +191,7 @@ export default function CreateOutgoingLetterPage() {
           </div>
 
           {/* Invitation Section */}
-          <div className="card p-6">
+          <div className="card p-6 bg-[#EBFDF9]">
             <div className="flex items-center mb-4">
               <input
                 {...register('isInvitation')}
@@ -238,7 +238,7 @@ export default function CreateOutgoingLetterPage() {
           </div>
 
           {/* File Upload Section */}
-          <div className="card p-6">
+          <div className="card p-6 bg-[#EBFDF9]">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
               File Lampiran
             </h2>
@@ -292,21 +292,27 @@ export default function CreateOutgoingLetterPage() {
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-4">
-            <Link
-              href="/letters/outgoing"
-              className="btn btn-secondary"
-            >
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={createLetterMutation.isLoading}
-              className="btn btn-primary"
-            >
-              {createLetterMutation.isLoading ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
+<div className="flex justify-start space-x-4">
+  <button
+    type="submit"
+    disabled={createLetterMutation.isLoading}
+    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+      createLetterMutation.isLoading
+        ? 'bg-[#12A168] opacity-70 cursor-not-allowed text-white'
+        : 'bg-[#12A168] hover:bg-[#0e7d52] text-white'
+    }`}
+  >
+    {createLetterMutation.isLoading ? 'Menyimpan...' : 'Tambah'}
+  </button>
+
+  <Link
+    href="/letters/outgoing"
+    className="btn btn-secondary"
+  >
+    Batal
+  </Link>
+</div>
+
         </form>
       </div>
     </Layout>

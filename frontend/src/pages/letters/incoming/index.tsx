@@ -103,163 +103,178 @@ export default function IncomingLettersPage() {
             <p className="text-gray-600">Kelola surat masuk organisasi Anda</p>
           </div>
           <Link
-            href="/letters/incoming/create"
-            className="btn btn-primary flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Tambah Surat</span>
-          </Link>
+  href="/letters/incoming/create"
+  className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-[#023538] text-white hover:bg-[#034d4d] transition-colors"
+>
+  <Plus className="h-4 w-4" />
+  <span>Tambah Surat Masuk</span>
+</Link>
+
         </div>
 
-        {/* Search and Filters */}
-        <div className="card p-6">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari berdasarkan nomor surat, subjek, atau pengirim..."
-                  className="input pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="sm:w-48">
-              <select
-                className="input"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">Semua Sifat</option>
-                <option value="BIASA">Biasa</option>
-                <option value="TERBATAS">Terbatas</option>
-                <option value="RAHASIA">Rahasia</option>
-                <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
-                <option value="PENTING">Penting</option>
-              </select>
-            </div>
-            <button type="submit" className="btn btn-primary">
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
-        </div>
+{/* Search and Filters */}
+<div className="card p-6">
+  <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+    <div className="flex-1">
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Cari berdasarkan nomor surat, isi ringkas , atau penerima.."
+          className="input pl-10 bg-[#EBFDF9] border rounded-lg"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+    </div>
+
+    <div className="sm:w-48">
+      <select
+        className="input bg-[#EBFDF9] border rounded-lg"
+        value={categoryFilter}
+        onChange={(e) => setCategoryFilter(e.target.value)}
+      >
+        <option value="">Semua Kategori</option>
+        <option value="BIASA">Biasa</option>
+        <option value="TERBATAS">Terbatas</option>
+        <option value="RAHASIA">Rahasia</option>
+        <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
+        <option value="PENTING">Penting</option>
+      </select>
+    </div>
+
+    <button
+      type="submit"
+      className="flex items-center justify-center px-4 py-2 rounded-lg bg-[#12A168] text-white hover:bg-[#0e7d52] transition-colors"
+    >
+      <Search className="h-4 w-4" />
+    </button>
+  </form>
+</div>
 
         {/* Letters Table */}
         <div className="card overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            </div>
-          ) : letters.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Surat
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Pengirim
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Kategori
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tanggal
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        File
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {letters.map((letter: IncomingLetter) => (
-                      <tr key={letter.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {letter.letterNumber}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {letter.subject}
-                            </div>
-                            {letter.isInvitation && letter.eventDate && (
-                              <div className="flex items-center text-xs text-purple-600 mt-1">
-                                <Calendar className="h-3 w-3 mr-1" />
-                                {formatDate(letter.eventDate)}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {letter.sender}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`badge ${natureColors[letter.letterNature as keyof typeof natureColors] || natureColors.BIASA}`}>
-                            {natureLabels[letter.letterNature as keyof typeof natureLabels] || letter.letterNature}
-                          </span>
-                          {letter.isInvitation && (
-                            <span className="badge badge-primary ml-1">
-                              Undangan
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {formatDate(letter.receivedDate)}
-                        </td>
-                        <td className="px-6 py-4">
-                          {letter.fileName ? (
-                            <button
-                              onClick={() => handleDownload(letter)}
-                              className="flex items-center text-sm text-primary-600 hover:text-primary-500"
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              {letter.fileName}
-                            </button>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            <Link
-                              href={`/letters/incoming/${letter.id}`}
-                              className="text-gray-600 hover:text-gray-900"
-                              title="Lihat"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                            {(user?.role === 'ADMIN' || letter.userId === user?.id) && (
-                              <>
-                                <Link
-                                  href={`/letters/incoming/${letter.id}/edit`}
-                                  className="text-primary-600 hover:text-primary-900"
-                                  title="Edit"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Link>
-                                <button
-                                  onClick={() => setShowConfirmDelete(letter.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                  title="Hapus"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+  {isLoading ? (
+    <div className="p-8 text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+    </div>
+  ) : letters.length > 0 ? (
+    <>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+          <thead className="bg-[#EBFDF9]">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                Surat
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                Pengirim
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                Kategori
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                Tanggal
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                File
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                Aksi
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="bg-[#EBFDF9] divide-y divide-gray-200">
+            {letters.map((letter: IncomingLetter) => (
+              <tr key={letter.id} className="hover:bg-[#d9f7ef] transition-colors">
+                <td className="px-6 py-4">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {letter.letterNumber}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {letter.subject}
+                    </div>
+                    {letter.isInvitation && letter.eventDate && (
+                      <div className="flex items-center text-xs text-purple-600 mt-1">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {formatDate(letter.eventDate)}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {letter.sender}
+                </td>
+                <td className="px-6 py-4">
+                  <span
+                    className={`badge ${
+                      natureColors[
+                        letter.letterNature as keyof typeof natureColors
+                      ] || natureColors.BIASA
+                    }`}
+                  >
+                    {natureLabels[
+                      letter.letterNature as keyof typeof natureLabels
+                    ] || letter.letterNature}
+                  </span>
+                  {letter.isInvitation && (
+                    <span className="badge badge-primary ml-1">
+                      Undangan
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {formatDate(letter.receivedDate)}
+                </td>
+                <td className="px-6 py-4">
+                  {letter.fileName ? (
+                    <button
+                      onClick={() => handleDownload(letter)}
+                      className="flex items-center text-sm text-primary-600 hover:text-primary-500"
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      {letter.fileName}
+                    </button>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-right text-sm font-medium">
+                  <div className="flex justify-end space-x-2">
+                    <Link
+                      href={`/letters/incoming/${letter.id}`}
+                      className="text-gray-600 hover:text-gray-900"
+                      title="Lihat"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                    {(user?.role === 'ADMIN' || letter.userId === user?.id) && (
+                      <>
+                        <Link
+                          href={`/letters/incoming/${letter.id}/edit`}
+                          className="text-primary-600 hover:text-primary-900"
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => setShowConfirmDelete(letter.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Hapus"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
               {/* Pagination */}
               {pagination && pagination.pages > 1 && (
