@@ -17,6 +17,7 @@ model User {
   updatedAt       DateTime         @updatedAt
   incomingLetters IncomingLetter[]
   outgoingLetters OutgoingLetter[]
+   createdDispositions   Disposition[]    @relation("DispositionCreatedBy")
 
   @@map("users")
 }
@@ -96,10 +97,16 @@ model Disposition {
   notes            String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+
   incomingLetter   IncomingLetter  @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
+
+  // ✅ Tambahkan relasi dua arah dengan User
+  createdById      String?
+  createdBy        User? @relation("DispositionCreatedBy", fields: [createdById], references: [id])
 
   @@map("dispositions")
 }
+
 
 model Notification {
   id        String           @id @default(cuid())
