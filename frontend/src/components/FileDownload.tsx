@@ -1,206 +1,130 @@
+// Lokasi: src/components/FileDownload.tsx
+
 import React, { useState } from 'react';
-import { Download, Eye, FileText, Image, FileImage } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import Cookies from 'js-cookie';
+import apiClient from '@/lib/api'; // Impor apiClient
+import { useFileInfo } from '@/hooks/useApi';
+import { Download, Eye, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { filesize } from 'filesize';
 import { toast } from 'react-hot-toast';
 
 interface FileDownloadProps {
-  letterId: string;
+  letterId?: string;
   letterType: 'incoming' | 'outgoing';
-  fileName?: string;
-  className?: string;
 }
 
-interface FileInfo {
-  fileName: string;
-  fileSize: number;
-  mimeType: string;
-  isViewable: boolean;
-  letterNumber: string;
-}
+const FileDownload: React.FC<FileDownloadProps> = ({ letterId, letterType }) => {
+  const { data, isLoading, isError } = useFileInfo({ id: letterId, type: letterType });
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
-const FileDownload: React.FC<FileDownloadProps> = ({
-  letterId,
-  letterType,
-  fileName: initialFileName,
-  className = ''
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
-  const [fileExists, setFileExists] = useState<boolean | null>(null);
-  const { isAuthenticated } = useAuth();
-  const token = Cookies.get('authToken');
-
-  // Check if file exists and get info
-  const checkFileInfo = async () => {
-    if (!token) return;
+  const handleDownload = async () => {
+    if (!letterId) return;
+    setIsDownloading(true);
+    toast.loading('Mempersiapkan file untuk di-download...');
 
     try {
-      const response = await fetch(`/api/files/${letterType}/${letterId}/info`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFileExists(data.exists);
-        setFileInfo(data.fileInfo);
-      }
-    } catch (error) {
-      console.error('Error checking file info:', error);
-    }
-  };
-
-  // Initialize file info on mount
-  React.useEffect(() => {
-    checkFileInfo();
-  }, [letterId, letterType, token]);
-
-  const downloadFile = async () => {
-    if (!token || loading) return;
-
-    try {
-      setLoading(true);
+      const response = await apiClient.downloadFile(letterType, letterId);
       
-      const response = await fetch(`/api/files/${letterType}/${letterId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Download failed');
-      }
-
-      // Get filename from response headers or use fallback
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = initialFileName || fileInfo?.fileName || 'document';
-      
+      // Ambil nama file dari header Content-Disposition
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'downloaded-file'; // Fallback
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
+        if (filenameMatch && filenameMatch[1]) {
           filename = filenameMatch[1];
         }
       }
-
-      // Convert response to blob and create download link
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      
+      // Buat URL sementara dari blob dan picu download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename;
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+
+      // Hapus link dan URL sementara
+      link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success('File downloaded successfully');
-    } catch (error: any) {
-      console.error('Download error:', error);
-      toast.error(error.message || 'Failed to download file');
-    } finally {
-      setLoading(false);
-    }
-  };
+      toast.dismiss();
+      toast.success('File berhasil di-download!');
 
-  const previewFile = async () => {
-    if (!token || loading || !fileInfo?.isViewable) return;
-
-    try {
-      const url = `/api/files/${letterType}/${letterId}/preview`;
-      window.open(`${url}?token=${token}`, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Preview error:', error);
-      toast.error('Failed to preview file');
+      toast.dismiss();
+      toast.error('Gagal men-download file.');
+      console.error("Download error:", error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  const handlePreview = async () => {
+    if (!letterId) return;
+    setIsPreviewing(true);
+    
+    try {
+      const response = await apiClient.previewFile(letterType, letterId);
+      const fileBlob = new Blob([response.data], { type: response.headers['content-type'] });
+      const url = window.URL.createObjectURL(fileBlob);
+      window.open(url, '_blank', 'noopener,noreferrer');
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) {
-      return <Image className="h-4 w-4" />;
-    } else if (mimeType === 'application/pdf') {
-      return <FileImage className="h-4 w-4" />;
+    } catch (error) {
+      toast.error('Gagal membuka preview file.');
+      console.error("Preview error:", error);
+    } finally {
+      setIsPreviewing(false);
     }
-    return <FileText className="h-4 w-4" />;
   };
 
-  if (fileExists === false) {
+  if (isLoading) {
     return (
-      <div className={`text-center py-4 text-gray-500 ${className}`}>
-        <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-        <p className="text-sm">No file attached</p>
+      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-4">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Mengecek file...
       </div>
     );
   }
 
-  if (!fileInfo) {
+  if (isError || !data?.exists) {
     return (
-      <div className={`text-center py-4 ${className}`}>
-        <div className="animate-pulse flex items-center justify-center">
-          <FileText className="h-6 w-6 text-gray-400" />
-          <span className="ml-2 text-sm text-gray-500">Loading file info...</span>
-        </div>
+      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
+        <AlertCircle className="h-5 w-5 text-gray-400" />
+        Tidak ada file lampiran.
       </div>
     );
   }
+
+  const { fileInfo } = data;
 
   return (
-    <div className={`bg-gray-50 border border-gray-200 rounded-lg p-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3 flex-1">
-          {getFileIcon(fileInfo.mimeType)}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {fileInfo.fileName}
-            </p>
-            <p className="text-xs text-gray-500">
-              {formatFileSize(fileInfo.fileSize)} • {fileInfo.mimeType}
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
+        <p className="font-bold text-gray-800 break-all">{fileInfo.fileName}</p>
+        <p className="text-sm text-gray-500">
+          {filesize(fileInfo.fileSize)} - {fileInfo.mimeType}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-emerald-600 text-white rounded-xl shadow-sm hover:bg-emerald-700 transition-all font-medium disabled:opacity-60"
+        >
+          {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {isDownloading ? 'Downloading...' : 'Download'}
+        </button>
         
-        <div className="flex items-center space-x-2">
-          {fileInfo.isViewable && (
-            <button
-              onClick={previewFile}
-              disabled={loading}
-              className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors disabled:opacity-50"
-              title="Preview file"
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Preview
-            </button>
-          )}
-          
+        {fileInfo.isViewable && (
           <button
-            onClick={downloadFile}
-            disabled={loading}
-            className="inline-flex items-center px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 transition-colors disabled:opacity-50"
-            title="Download file"
+            onClick={handlePreview}
+            disabled={isPreviewing}
+            className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-white text-gray-700 rounded-xl shadow-sm border border-gray-300 hover:bg-gray-50 transition-all font-medium disabled:opacity-60"
           >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-700 mr-1"></div>
-                Downloading...
-              </>
-            ) : (
-              <>
-                <Download className="h-3 w-3 mr-1" />
-                Download
-              </>
-            )}
+            {isPreviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+            Preview
           </button>
-        </div>
+        )}
       </div>
     </div>
   );

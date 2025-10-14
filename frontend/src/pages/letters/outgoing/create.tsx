@@ -1,541 +1,476 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useForm } from 'react-hook-form';
-import { ArrowLeft, Upload, Calendar, X, Send, Hash, User, Shield, FileText } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useCreateOutgoingLetter } from '@/hooks/useApi';
-import Layout from '@/components/Layout/Layout';
-import Link from 'next/link';
-import { CreateOutgoingLetterRequest, LetterNature, SecurityClass } from '@/types';
-import { toast } from 'react-hot-toast';
+// create.tsx (untuk Surat Keluar)
+
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/router"
+import { useForm, type FieldPath } from "react-hook-form"
+import {
+  ArrowLeft,
+  Upload,
+  Calendar,
+  X,
+  Send,
+  FileText,
+  CheckCircle,
+  BookOpen,
+  ClipboardList,
+  ChevronRight,
+} from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import { useCreateOutgoingLetter } from "@/hooks/useApi"
+import Layout from "@/components/Layout/Layout"
+import Link from "next/link"
+import { type CreateOutgoingLetterRequest, type LetterNature, type SecurityClass } from "@/types"
+import { toast } from "react-hot-toast"
+
+// --- [BARU] Komponen Sidebar Navigasi Vertikal ---
+const VerticalStepper = ({ currentStep }: { currentStep: number }) => {
+  const steps = [
+    {
+      number: 1,
+      title: "Informasi Surat",
+      description: "Detail pengirim, penerima, dan subjek.",
+      icon: <ClipboardList className="h-6 w-6" />,
+    },
+    {
+      number: 2,
+      title: "Klasifikasi & Berkas",
+      description: "Sifat, keamanan, dan lampiran surat.",
+      icon: <BookOpen className="h-6 w-6" />,
+    },
+    {
+      number: 3,
+      title: "Tindakan & Acara",
+      description: "Jadwal acara atau tanggal pelaksanaan.",
+      icon: <Calendar className="h-6 w-6" />,
+    },
+  ]
+
+  return (
+    <nav className="flex flex-col space-y-4 p-4">
+      {steps.map((step) => {
+        const status = currentStep === step.number ? "active" : currentStep > step.number ? "complete" : "upcoming"
+
+        return (
+          <div key={step.number} className="flex items-start">
+            <div className="flex flex-col items-center mr-4">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${
+                  status === "active"
+                    ? "bg-primary-600 text-white shadow-lg"
+                    : status === "complete"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-gray-200 text-gray-500"
+                }`}
+              >
+                {status === "complete" ? <CheckCircle className="h-7 w-7" /> : step.icon}
+              </div>
+              {step.number !== steps.length && (
+                <div
+                  className={`mt-2 h-16 w-0.5 ${
+                    status === "complete" ? "bg-emerald-500" : "bg-gray-200"
+                  }`}
+                />
+              )}
+            </div>
+            <div className="pt-2.5">
+              <h3
+                className={`font-semibold ${
+                  status === "active"
+                    ? "text-primary-800"
+                    : status === "complete"
+                    ? "text-gray-900"
+                    : "text-gray-500"
+                }`}
+              >
+                {step.title}
+              </h3>
+              <p className="text-sm text-gray-500">{step.description}</p>
+            </div>
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
 
 export default function CreateOutgoingLetterPage() {
-  const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const router = useRouter()
+  const { isAuthenticated, loading } = useAuth()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [currentStep, setCurrentStep] = useState(1)
 
-  // Define constant arrays for dropdown options
-  const letterNatureOptions: LetterNature[] = ['BIASA', 'PENTING', 'SANGAT_RAHASIA', 'RAHASIA', 'PENTING'];
-  const securityClassOptions: SecurityClass[] = ['BIASA'];
+  const createLetterMutation = useCreateOutgoingLetter()
 
-  const createLetterMutation = useCreateOutgoingLetter();
+  const letterNatureOptions: LetterNature[] = ["BIASA", "PENTING", "RAHASIA", "SANGAT_RAHASIA"]
+  const securityClassOptions: SecurityClass[] = ["BIASA"]
 
   const {
     register,
     handleSubmit,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<CreateOutgoingLetterRequest>({
+    mode: "onChange",
     defaultValues: {
-      createdDate: new Date().toISOString().slice(0, 16), // Default to current datetime
-      letterDate: new Date().toISOString().slice(0, 16), // Default to current datetime
-      letterNature: 'BIASA', // Default to 'Biasa'
-      securityClass: 'BIASA', // Default to 'Biasa'
+      createdDate: new Date().toISOString().slice(0, 16),
+      letterDate: new Date().toISOString().slice(0, 16),
+      letterNature: "BIASA",
+      securityClass: "BIASA",
       isInvitation: false,
     },
-  });
+  })
 
-  const isInvitation = watch('isInvitation');
+  const isInvitation = watch("isInvitation")
+  const dispositionMethod = watch("dispositionMethod")
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.replace('/auth/login');
+      router.replace("/auth/login")
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, router])
 
   const onSubmit = async (data: CreateOutgoingLetterRequest) => {
     try {
-      // Proper data formatting for backend
       const formData = {
         ...data,
-        // Ensure dates are properly formatted as ISO strings
         createdDate: new Date(data.createdDate).toISOString(),
         letterDate: new Date(data.letterDate).toISOString(),
         executionDate: data.executionDate ? new Date(data.executionDate).toISOString() : undefined,
         eventDate: data.eventDate ? new Date(data.eventDate).toISOString() : undefined,
-        // Ensure boolean conversion
         isInvitation: Boolean(data.isInvitation),
-        // Handle optional fields
         classificationCode: data.classificationCode || undefined,
         serialNumber: data.serialNumber || undefined,
         note: data.note || undefined,
         eventLocation: data.eventLocation || undefined,
         eventNotes: data.eventNotes || undefined,
+        srikandiDispositionNumber:
+          dispositionMethod === "SRIKANDI" ? data.srikandiDispositionNumber || undefined : undefined,
         file: selectedFile || undefined,
-      };
+      }
 
-      await createLetterMutation.mutateAsync(formData);
-      toast.success('Surat keluar berhasil ditambahkan!');
-      router.push('/letters/outgoing');
+      await createLetterMutation.mutateAsync(formData)
+      toast.success("Surat keluar berhasil ditambahkan!")
+      router.push("/letters/outgoing")
     } catch (error) {
-      console.error('Failed to create letter:', error);
-      toast.error('Gagal membuat surat keluar. Silakan coba lagi.');
+      console.error("Failed to create letter:", error)
+      toast.error("Gagal membuat surat keluar. Silakan coba lagi.")
     }
-  };
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
-  };
+    const file = e.target.files?.[0]
+    if (file) setSelectedFile(file)
+  }
 
   const removeFile = () => {
-    setSelectedFile(null);
-    const fileInput = document.getElementById('file') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
+    setSelectedFile(null)
+    const fileInput = document.getElementById("file") as HTMLInputElement
+    if (fileInput) fileInput.value = ""
+  }
+
+  const handleNextStep = async () => {
+    let fieldsToValidate: FieldPath<CreateOutgoingLetterRequest>[] = []
+    if (currentStep === 1) {
+      fieldsToValidate = ["letterNumber", "subject", "createdDate", "letterDate", "sender", "recipient", "processor"]
+    } else if (currentStep === 2) {
+      fieldsToValidate = ["letterNature", "securityClass", "dispositionMethod"]
+      if (dispositionMethod === "SRIKANDI") {
+        fieldsToValidate.push("srikandiDispositionNumber")
+      }
     }
-  };
+    const isValid = await trigger(fieldsToValidate)
+    if (isValid) {
+      setCurrentStep((prev) => prev + 1)
+    } else {
+      toast.error("Harap isi semua kolom yang wajib diisi sebelum melanjutkan.")
+    }
+  }
+
+  const handlePrevStep = () => setCurrentStep((prev) => prev - 1)
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
-    );
+    )
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null
+  
+  const inputFocusStyle = "focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/letters/outgoing"
-            className="p-2 rounded-lg hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tambah Surat Keluar</h1>
-            <p className="text-gray-600">Masukkan informasi surat keluar baru</p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="card p-6 bg-[#EBFDF9]">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Informasi Surat
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nomor Surat <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('letterNumber', { required: 'Nomor surat wajib diisi' })}
-                  type="text"
-                  className="input"
-                  placeholder="Masukkan nomor surat"
-                />
-                {errors.letterNumber && (
-                  <p className="mt-1 text-sm text-red-600">{errors.letterNumber.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tanggal Pembuatan <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('createdDate', {
-                    required: 'Tanggal pembuatan wajib diisi',
-                    validate: (value) => {
-                      const date = new Date(value);
-                      const now = new Date();
-                      if (date > now) {
-                        return 'Tanggal tidak boleh di masa depan';
-                      }
-                      return true;
-                    }
-                  })}
-                  type="datetime-local"
-                  className="input"
-                  max={new Date().toISOString().slice(0, 16)}
-                />
-                {errors.createdDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.createdDate.message}</p>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subjek <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('subject', { required: 'Subjek wajib diisi' })}
-                  type="text"
-                  className="input"
-                  placeholder="Masukkan subjek surat"
-                />
-                {errors.subject && (
-                  <p className="mt-1 text-sm text-red-600">{errors.subject.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tanggal Surat <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('letterDate', {
-                    required: 'Tanggal surat wajib diisi',
-                    validate: (value) => {
-                      const date = new Date(value);
-                      const now = new Date();
-                      if (date > now) {
-                        return 'Tanggal tidak boleh di masa depan';
-                      }
-                      return true;
-                    }
-                  })}
-                  type="datetime-local"
-                  className="input"
-                  max={new Date().toISOString().slice(0, 16)}
-                />
-                {errors.letterDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.letterDate.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sifat Surat <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('letterNature', { required: 'Sifat surat wajib diisi' })}
-                  className="input"
-                >
-                  {letterNatureOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-                {errors.letterNature && (
-                  <p className="mt-1 text-sm text-red-600">{errors.letterNature.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <User className="h-4 w-4 mr-1 text-gray-500" /> Pengirim <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('sender', { required: 'Pengirim wajib diisi' })}
-                  type="text"
-                  className="input"
-                  placeholder="Masukkan nama pengirim"
-                />
-                {errors.sender && (
-                  <p className="mt-1 text-sm text-red-600">{errors.sender.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <User className="h-4 w-4 mr-1 text-gray-500" /> Penerima <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('recipient', { required: 'Penerima wajib diisi' })}
-                  type="text"
-                  className="input"
-                  placeholder="Masukkan nama penerima"
-                />
-                {errors.recipient && (
-                  <p className="mt-1 text-sm text-red-600">{errors.recipient.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <User className="h-4 w-4 mr-1 text-gray-500" /> Pengolah <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register('processor', { required: 'Pengolah wajib diisi' })}
-                  type="text"
-                  className="input"
-                  placeholder="Masukkan nama pengolah"
-                />
-                {errors.processor && (
-                  <p className="mt-1 text-sm text-red-600">{errors.processor.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <Shield className="h-4 w-4 mr-1 text-gray-500" /> Klasifikasi Keamanan <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('securityClass', { required: 'Klasifikasi keamanan wajib diisi' })}
-                  className="input"
-                >
-                  {securityClassOptions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-                {errors.securityClass && (
-                  <p className="mt-1 text-sm text-red-600">{errors.securityClass.message}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <Hash className="h-4 w-4 mr-1 text-gray-500" /> Kode Klasifikasi
-                </label>
-                <input
-                  {...register('classificationCode')}
-                  type="text"
-                  className="input"
-                  placeholder="Cth: 000/123/IX/2023"
-                />
-                {errors.classificationCode && (
-                  <p className="mt-1 text-sm text-red-600">{errors.classificationCode.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <Hash className="h-4 w-4 mr-1 text-gray-500" /> Nomor Urut
-                </label>
-                <input
-                  {...register('serialNumber', { valueAsNumber: true })}
-                  type="number"
-                  className="input"
-                  placeholder="Cth: 123"
-                />
-                {errors.serialNumber && (
-                  <p className="mt-1 text-sm text-red-600">{errors.serialNumber.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tanggal Pelaksanaan (Opsional)
-                </label>
-                <input
-                  {...register('executionDate')}
-                  type="datetime-local"
-                  className="input"
-                />
-                {errors.executionDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.executionDate.message}</p>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Catatan
-                </label>
-                <textarea
-                  {...register('note')}
-                  rows={3}
-                  className="input"
-                  placeholder="Masukkan catatan tambahan (opsional)"
-                />
-              </div>
+      {/* --- [PERUBAHAN] Struktur Layout Utama Menjadi Dua Kolom --- */}
+      <div className="flex flex-col md:flex-row min-h-[calc(100vh-150px)] bg-gray-50 rounded-xl shadow-sm">
+        {/* Kolom Kiri: Sidebar Navigasi */}
+        <div className="w-full md:w-1/3 lg:w-1/4 bg-white rounded-l-xl border-r border-gray-200 p-4">
+          <div className="flex items-center space-x-3 mb-6 p-2">
+            <Link href="/letters/outgoing" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </Link>
+            <div>
+              <h1 className="font-bold text-lg text-gray-800">Tambah Surat Keluar</h1>
             </div>
           </div>
-          
-          {/* Disposition Method Section */}
-          <div className="card p-6 bg-[#EBFDF9]">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Metode Disposisi
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pilih Metode Disposisi <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('dispositionMethod', { required: 'Metode disposisi wajib dipilih' })}
-                  className="input"
-                  defaultValue=""
-                >
-                  <option value="">Pilih...</option>
-                  <option value="MANUAL">Manual</option>
-                  <option value="SRIKANDI">Srikandi</option>
-                </select>
-                {errors.dispositionMethod && (
-                  <p className="mt-1 text-sm text-red-600">{errors.dispositionMethod.message}</p>
-                )}
-              </div>
+          <VerticalStepper currentStep={currentStep} />
+        </div>
 
-              {watch('dispositionMethod') === 'SRIKANDI' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nomor Disposisi Srikandi <span className="text-red-500">*</span>
+        {/* Kolom Kanan: Konten Form */}
+        <div className="w-full md:w-2/3 lg:w-3/4 p-6 md:p-10">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+            <div className="flex-grow">
+              <h2 className="section-title text-[#023538]">
+                Langkah {currentStep}:{" "}
+                {currentStep === 1 && "Informasi Surat"}
+                {currentStep === 2 && "Klasifikasi & Berkas"}
+                {currentStep === 3 && "Tindakan & Acara"}
+              </h2>
+              <p className="section-description mb-8">
+                Pastikan semua data yang ditandai dengan (*) terisi dengan benar.
+              </p>
+
+              {/* --- KONTEN FORM DINAMIS BERDASARKAN LANGKAH --- */}
+
+              {/* --- LANGKAH 1: INFORMASI SURAT --- */}
+              {currentStep === 1 && (
+                <div className="animate-fade-in space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Nomor Surat</label>
+                      <input
+                        {...register("letterNumber", { required: "Nomor surat wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.letterNumber ? "input-error" : ""}`}
+                      />
+                      {errors.letterNumber && <p className="form-error">{errors.letterNumber.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Tanggal Pembuatan</label>
+                      <input
+                        {...register("createdDate", { required: "Tanggal pembuatan wajib diisi" })}
+                        type="datetime-local"
+                        className={`input ${inputFocusStyle} ${errors.createdDate ? "input-error" : ""}`}
+                      />
+                      {errors.createdDate && <p className="form-error">{errors.createdDate.message}</p>}
+                    </div>
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label form-label-required">Subjek Surat</label>
+                      <input
+                        {...register("subject", { required: "Subjek wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.subject ? "input-error" : ""}`}
+                      />
+                      {errors.subject && <p className="form-error">{errors.subject.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Tanggal Surat</label>
+                      <input
+                        {...register("letterDate", { required: "Tanggal surat wajib diisi" })}
+                        type="datetime-local"
+                        className={`input ${inputFocusStyle} ${errors.letterDate ? "input-error" : ""}`}
+                      />
+                      {errors.letterDate && <p className="form-error">{errors.letterDate.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Pengolah</label>
+                      <input
+                        {...register("processor", { required: "Pengolah wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.processor ? "input-error" : ""}`}
+                      />
+                      {errors.processor && <p className="form-error">{errors.processor.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Pengirim</label>
+                      <input
+                        {...register("sender", { required: "Pengirim wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.sender ? "input-error" : ""}`}
+                      />
+                      {errors.sender && <p className="form-error">{errors.sender.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Penerima</label>
+                      <input
+                        {...register("recipient", { required: "Penerima wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.recipient ? "input-error" : ""}`}
+                      />
+                      {errors.recipient && <p className="form-error">{errors.recipient.message}</p>}
+                    </div>
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Catatan</label>
+                      <textarea {...register("note")} rows={3} className={`input ${inputFocusStyle}`} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- LANGKAH 2: KLASIFIKASI & BERKAS --- */}
+              {currentStep === 2 && (
+                <div className="animate-fade-in">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="space-y-6">
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Sifat Surat</label>
+                        <select {...register("letterNature")} className={`input ${inputFocusStyle}`}>
+                          {letterNatureOptions.map((v) => (<option key={v} value={v}>{v}</option>))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Klasifikasi Keamanan</label>
+                        <select {...register("securityClass")} className={`input ${inputFocusStyle}`}>
+                          {securityClassOptions.map((v) => (<option key={v} value={v}>{v}</option>))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Kode Klasifikasi</label>
+                        <input {...register("classificationCode")} type="text" className={`input ${inputFocusStyle}`} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Nomor Urut</label>
+                        <input {...register("serialNumber")} type="number" className={`input ${inputFocusStyle}`} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Metode Disposisi</label>
+                        <select {...register("dispositionMethod", { required: true })} className={`input ${inputFocusStyle}`}>
+                          <option value="MANUAL">Manual</option>
+                          <option value="SRIKANDI">Srikandi</option>
+                        </select>
+                      </div>
+                      {dispositionMethod === "SRIKANDI" && (
+                        <div className="form-group animate-fade-in">
+                          <label className="form-label form-label-required">Nomor Disposisi Srikandi</label>
+                          <input
+                            {...register("srikandiDispositionNumber", { required: true })}
+                            type="text"
+                            className={`input ${inputFocusStyle}`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label">File Lampiran (Opsional)</label>
+                      {!selectedFile ? (
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                          <input
+                            id="file" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <div className="flex flex-col items-center">
+                            <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                            <span className="text-sm font-medium text-primary-700">Klik atau jatuhkan file di sini</span>
+                            <span className="text-xs text-gray-500 mt-1">Maks. 10MB</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border">
+                          <div className="flex items-center space-x-3 overflow-hidden">
+                            <FileText className="h-8 w-8 text-gray-500 flex-shrink-0" />
+                            <div className="truncate">
+                              <p className="text-sm font-medium text-gray-900 truncate">{selectedFile.name}</p>
+                              <p className="text-sm text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                          </div>
+                          <button type="button" onClick={removeFile} className="text-red-600 hover:text-red-800 p-1">
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- LANGKAH 3: TINDAKAN & ACARA --- */}
+              {currentStep === 3 && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="card p-6 border">
+                    <div className="form-group">
+                      <label className="form-label">Tanggal Pelaksanaan (Opsional)</label>
+                      <input {...register("executionDate")} type="datetime-local" className={`input ${inputFocusStyle}`} />
+                    </div>
+                  </div>
+                  
+                  {/* --- [PERUBAHAN] Checkbox menjadi Toggle Card --- */}
+                  <label
+                    htmlFor="isInvitation"
+                    className={`flex flex-col space-y-1 cursor-pointer rounded-lg border-2 p-4 text-center transition-all duration-200 hover:shadow-md ${
+                      isInvitation
+                        ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <input {...register("isInvitation")} type="checkbox" id="isInvitation" className="sr-only" />
+                    <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 ${
+                        isInvitation ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      <Calendar className="h-6 w-6" />
+                    </div>
+                    <span className="font-semibold">Ini adalah Undangan/Acara</span>
+                    <p className="text-sm text-gray-500">Aktifkan untuk menambahkan detail acara.</p>
                   </label>
-                  <input
-                    {...register('srikandiDispositionNumber', {
-                      required: 'Nomor disposisi Srikandi wajib diisi jika metode Srikandi dipilih',
-                      minLength: { value: 3, message: 'Nomor minimal 3 karakter' }
-                    })}
-                    type="text"
-                    className="input"
-                    placeholder="Contoh: SRIKANDI/001/2025"
-                  />
-                  {errors.srikandiDispositionNumber && (
-                    <p className="mt-1 text-sm text-red-600">{errors.srikandiDispositionNumber.message}</p>
+
+                  {isInvitation && (
+                    <div className="card p-6 border-primary-200 border animate-fade-in">
+                      <h3 className="font-semibold text-gray-800 mb-4">Detail Acara</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="form-group">
+                          <label className="form-label">Tanggal & Waktu Acara</label>
+                          <input {...register("eventDate")} type="datetime-local" className={`input ${inputFocusStyle}`} />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Lokasi Acara</label>
+                          <input {...register("eventLocation")} type="text" className={`input ${inputFocusStyle}`} />
+                        </div>
+                        <div className="form-group md:col-span-2">
+                          <label className="form-label">Catatan Acara</label>
+                          <textarea {...register("eventNotes")} rows={3} className={`input ${inputFocusStyle}`} />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
             </div>
-          </div>
-      
 
-          {/* Invitation Section */}
-          <div className="card p-6 bg-[#EBFDF9]">
-            <div className="flex items-center mb-4">
-              <input
-                {...register('isInvitation')}
-                type="checkbox"
-                id="isInvitation"
-                className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
-              <label htmlFor="isInvitation" className="ml-2 text-sm font-medium text-gray-700">
-                Ini adalah undangan/acara
-              </label>
+            {/* --- Tombol Navigasi --- */}
+            <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-between">
+              <div>
+                {currentStep > 1 && (
+                  <button type="button" onClick={handlePrevStep} className="btn btn-secondary">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Sebelumnya
+                  </button>
+                )}
+              </div>
+              <div>
+                {currentStep < 3 && (
+                  <button type="button" onClick={handleNextStep} className="btn btn-primary">
+                    Berikutnya
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </button>
+                )}
+                {currentStep === 3 && (
+                  <button
+                    type="submit"
+                    disabled={createLetterMutation.isLoading}
+                    className="btn bg-[#12A168] hover:bg-[#0e7d52] text-white disabled:opacity-70"
+                  >
+                    {createLetterMutation.isLoading ? "Menyimpan..." : <><Send className="h-4 w-4 mr-2" /> Simpan Surat</>}
+                  </button>
+                )}
+              </div>
             </div>
-
-            {isInvitation && (
-              <div className="space-y-4 border-t pt-4">
-                <h3 className="text-md font-medium text-gray-900 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Detail Acara
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tanggal & Waktu Acara
-                    </label>
-                    <input
-                      {...register('eventDate')}
-                      type="datetime-local"
-                      className="input"
-                    />
-                     {errors.eventDate && (
-                      <p className="mt-1 text-sm text-red-600">{errors.eventDate.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lokasi Acara
-                    </label>
-                    <input
-                      {...register('eventLocation')}
-                      type="text"
-                      className="input"
-                      placeholder="Masukkan lokasi acara"
-                    />
-                    {errors.eventLocation && (
-                      <p className="mt-1 text-sm text-red-600">{errors.eventLocation.message}</p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Catatan Acara
-                    </label>
-                    <textarea
-                      {...register('eventNotes')}
-                      rows={2}
-                      className="input"
-                      placeholder="Masukkan catatan tambahan untuk acara (opsional)"
-                    />
-                    {errors.eventNotes && (
-                      <p className="mt-1 text-sm text-red-600">{errors.eventNotes.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* File Upload Section */}
-          <div className="card p-6 bg-[#EBFDF9]">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              File Lampiran
-            </h2>
-            
-            {!selectedFile ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <input
-                  id="file"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="sr-only"
-                />
-                <label
-                  htmlFor="file"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                  <span className="text-sm font-medium text-gray-900">
-                    Klik untuk mengunggah file
-                  </span>
-                  <span className="text-sm text-gray-500 mt-1">
-                    PDF, DOC, DOCX, JPG, JPEG, PNG (maks. 10MB)
-                  </span>
-                </label>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <FileText className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={removeFile}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex justify-start space-x-4">
-            <button
-              type="submit"
-              disabled={createLetterMutation.isLoading}
-              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                createLetterMutation.isLoading
-                  ? 'bg-[#12A168] opacity-70 cursor-not-allowed text-white'
-                  : 'bg-[#12A168] hover:bg-[#0e7d52] text-white'
-              }`}
-            >
-              {createLetterMutation.isLoading ? 'Menyimpan...' : 'Tambah'}
-            </button>
-
-            <Link
-              href="/letters/outgoing"
-              className="btn btn-secondary"
-            >
-              Batal
-            </Link>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </Layout>
-  );
+  )
 }

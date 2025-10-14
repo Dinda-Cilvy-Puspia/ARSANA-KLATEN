@@ -1,509 +1,535 @@
-// --- START OF FILE create.tsx ---
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useForm } from 'react-hook-form';
-import { ArrowLeft, Upload, Calendar, X, FileText, CheckCircle, BookOpen } from 'lucide-react'; // Tambahkan BookOpen
-import { useAuth } from '@/hooks/useAuth';
-import { useCreateIncomingLetter } from '@/hooks/useApi';
-import Layout from '@/components/Layout/Layout';
-import Link from 'next/link';
-import { CreateIncomingLetterRequest, LetterCategory } from '@/types';
-import { toast } from 'react-hot-toast';
+// create.tsx
+
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/router"
+import { useForm, type FieldPath } from "react-hook-form"
+import {
+  ArrowLeft,
+  Upload,
+  Calendar,
+  X,
+  FileText,
+  CheckCircle,
+  BookOpen,
+  Send,
+  ClipboardList,
+  ChevronRight,
+  MousePointerSquare,
+} from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import { useCreateIncomingLetter } from "@/hooks/useApi"
+import Layout from "@/components/Layout/Layout"
+import Link from "next/link"
+import type { CreateIncomingLetterRequest } from "@/types"
+import { toast } from "react-hot-toast"
+
+// --- [MODIFIKASI] Komponen Sidebar Navigasi Vertikal (tanpa clsx) ---
+const VerticalStepper = ({ currentStep }: { currentStep: number }) => {
+  const steps = [
+    {
+      number: 1,
+      title: "Informasi Surat",
+      description: "Detail dasar mengenai surat.",
+      icon: <ClipboardList className="h-6 w-6" />,
+    },
+    {
+      number: 2,
+      title: "Proses & Berkas",
+      description: "Siapa pengolah dan lampiran.",
+      icon: <BookOpen className="h-6 w-6" />,
+    },
+    {
+      number: 3,
+      title: "Tindakan & Acara",
+      description: "Jadwal acara atau tindak lanjut.",
+      icon: <Calendar className="h-6 w-6" />,
+    },
+  ]
+
+  return (
+    <nav className="flex flex-col space-y-4 p-4">
+      {steps.map((step) => {
+        const status = currentStep === step.number ? "active" : currentStep > step.number ? "complete" : "upcoming"
+
+        return (
+          <div key={step.number} className="flex items-start">
+            <div className="flex flex-col items-center mr-4">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${
+                  status === "active"
+                    ? "bg-primary-600 text-white shadow-lg"
+                    : status === "complete"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-gray-200 text-gray-500"
+                }`}
+              >
+                {status === "complete" ? <CheckCircle className="h-7 w-7" /> : step.icon}
+              </div>
+              {step.number !== steps.length && (
+                <div
+                  className={`mt-2 h-16 w-0.5 ${
+                    status === "complete" ? "bg-emerald-500" : "bg-gray-200"
+                  }`}
+                />
+              )}
+            </div>
+            <div className="pt-2.5">
+              <h3
+                className={`font-semibold ${
+                  status === "active"
+                    ? "text-primary-800"
+                    : status === "complete"
+                    ? "text-gray-900"
+                    : "text-gray-500"
+                }`}
+              >
+                {step.title}
+              </h3>
+              <p className="text-sm text-gray-500">{step.description}</p>
+            </div>
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
 
 export default function CreateIncomingLetterPage() {
-  const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const router = useRouter()
+  const { isAuthenticated, loading } = useAuth()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [currentStep, setCurrentStep] = useState(1)
 
-  const createLetterMutation = useCreateIncomingLetter();
+  const createLetterMutation = useCreateIncomingLetter()
 
   const {
     register,
     handleSubmit,
     watch,
-    setValue,
+    trigger,
     formState: { errors },
-  } = useForm<CreateIncomingLetterRequest>();
+  } = useForm<CreateIncomingLetterRequest>({ mode: "onChange" })
 
-  const isInvitation = watch('isInvitation');
-  const needsFollowUp = watch('needsFollowUp');
-  const dispositionMethod = watch('dispositionMethod'); // Watch untuk metode disposisi
+  const isInvitation = watch("isInvitation")
+  const needsFollowUp = watch("needsFollowUp")
+  const dispositionMethod = watch("dispositionMethod")
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.replace('/auth/login');
+      router.replace("/auth/login")
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, router])
+
+// Lokasi: frontend/src/pages/letters/incoming/create.tsx
+
+// ... (kode lain di dalam komponen CreateIncomingLetterPage)
 
   const onSubmit = async (data: CreateIncomingLetterRequest) => {
     try {
-      // Proper data formatting for backend
-      const formData = {
-        ...data,
-        // Ensure dates are properly formatted as ISO strings
-        receivedDate: new Date(data.receivedDate).toISOString(),
-        letterDate: data.letterDate ? new Date(data.letterDate).toISOString() : undefined,
-        eventDate: data.eventDate ? new Date(data.eventDate).toISOString() : undefined,
-        followUpDeadline: data.followUpDeadline ? new Date(data.followUpDeadline).toISOString() : undefined,
-        // Ensure boolean conversion
-        isInvitation: Boolean(data.isInvitation),
-        needsFollowUp: Boolean(data.needsFollowUp),
-        // Handle optional fields
-        note: data.note || undefined, // Keterangan diubah menjadi catatan, tetap opsional
-        eventTime: data.eventTime || undefined,
-        eventLocation: data.eventLocation || undefined,
-        eventNotes: data.eventNotes || undefined,
-        srikandiDispositionNumber: dispositionMethod === 'SRIKANDI' ? data.srikandiDispositionNumber || undefined : undefined, // Hanya kirim jika Srikandi
-        file: selectedFile || undefined,
-      };
+      // 1. Buat objek FormData BARU. Ini adalah kuncinya.
+      const formData = new FormData();
 
+      // 2. Tambahkan semua data dari form ke formData.
+      // Kita perlu mengubah beberapa nilai agar sesuai dengan format form-data.
+      formData.append('letterNumber', data.letterNumber);
+      formData.append('subject', data.subject);
+      formData.append('sender', data.sender);
+      formData.append('recipient', data.recipient);
+      formData.append('processor', data.processor);
+      formData.append('receivedDate', new Date(data.receivedDate).toISOString());
+      
+      if (data.letterDate) {
+        formData.append('letterDate', new Date(data.letterDate).toISOString());
+      }
+      if (data.letterNature) {
+        formData.append('letterNature', data.letterNature);
+      }
+      if (data.note) {
+        formData.append('note', data.note);
+      }
+      if (data.dispositionMethod) {
+        formData.append('dispositionMethod', data.dispositionMethod);
+      }
+      if (data.srikandiDispositionNumber) {
+        formData.append('srikandiDispositionNumber', data.srikandiDispositionNumber);
+      }
+
+      // Kirim boolean sebagai string "true" atau "false"
+      formData.append('isInvitation', String(data.isInvitation || false));
+      formData.append('needsFollowUp', String(data.needsFollowUp || false));
+
+      if (data.isInvitation && data.eventDate) {
+        formData.append('eventDate', new Date(data.eventDate).toISOString());
+        if (data.eventTime) formData.append('eventTime', data.eventTime);
+        if (data.eventLocation) formData.append('eventLocation', data.eventLocation);
+        if (data.eventNotes) formData.append('eventNotes', data.eventNotes);
+      }
+
+      if (data.needsFollowUp && data.followUpDeadline) {
+        formData.append('followUpDeadline', new Date(data.followUpDeadline).toISOString());
+      }
+      
+      // 3. Tambahkan file yang dipilih ke formData.
+      // 'file' harus cocok dengan nama field di middleware multer backend.
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+      }
+
+      // 4. Kirim formData ke hook mutasi.
+      // Hook Anda (useCreateIncomingLetter) sekarang akan menerima FormData.
       await createLetterMutation.mutateAsync(formData);
-      toast.success('Surat masuk berhasil ditambahkan!');
-      router.push('/letters/incoming');
+
+      toast.success("Surat masuk berhasil ditambahkan!");
+      router.push("/letters/incoming");
+
     } catch (error) {
-      console.error('Failed to create letter:', error);
-      toast.error('Gagal membuat surat masuk. Silakan coba lagi.');
+      console.error("Failed to create letter:", error);
+      toast.error("Gagal membuat surat masuk. Silakan coba lagi.");
     }
   };
+
+// ... (sisa kode komponen)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0]
     if (file) {
-      setSelectedFile(file);
+      setSelectedFile(file)
     }
-  };
+  }
 
   const removeFile = () => {
-    setSelectedFile(null);
-    const fileInput = document.getElementById('file') as HTMLInputElement;
+    setSelectedFile(null)
+    const fileInput = document.getElementById("file") as HTMLInputElement
     if (fileInput) {
-      fileInput.value = '';
+      fileInput.value = ""
     }
-  };
+  }
+
+  const handleNextStep = async () => {
+    let fieldsToValidate: FieldPath<CreateIncomingLetterRequest>[] = []
+    if (currentStep === 1) {
+      fieldsToValidate = ["letterNumber", "subject", "sender", "recipient", "receivedDate"]
+    } else if (currentStep === 2) {
+      fieldsToValidate = ["processor", "dispositionMethod"]
+      if (dispositionMethod === "SRIKANDI") {
+        fieldsToValidate.push("srikandiDispositionNumber")
+      }
+    }
+    const isValid = await trigger(fieldsToValidate)
+    if (isValid) {
+      setCurrentStep((prev) => prev + 1)
+    } else {
+      toast.error("Harap isi semua kolom yang wajib diisi sebelum melanjutkan.")
+    }
+  }
+
+  const handlePrevStep = () => {
+    setCurrentStep((prev) => prev - 1)
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
-    );
+    )
   }
 
   if (!isAuthenticated) {
-    return null;
+    return null
   }
+
+  // --- [PERUBAHAN] Menambahkan class `focus:` pada semua input ---
+  const inputFocusStyle = "focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/letters/incoming"
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="section-title text-[#023538]">Tambah Surat Masuk</h1>
-            <p className="section-description">Masukkan informasi surat masuk baru</p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          <div className="card p-6 bg-[#EBFDF9] animate-slide-in">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-primary-600" />
-              Informasi Surat
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="form-group">
-                <label className="form-label form-label-required">
-                  Nomor Surat
-                </label>
-                <input
-                  {...register('letterNumber', { 
-                    required: 'Nomor surat wajib diisi',
-                    minLength: { value: 3, message: 'Nomor surat minimal 3 karakter' }
-                  })}
-                  type="text"
-                  className={`input ${errors.letterNumber ? 'input-error' : ''}`}
-                  placeholder="Contoh: 001/SK/2024"
-                />
-                {errors.letterNumber && (
-                  <p className="form-error">{errors.letterNumber.message}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  Tanggal Surat
-                </label>
-                <input
-                  {...register('letterDate')}
-                  type="date"
-                  className="input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  Sifat Surat
-                </label>
-                <select
-                  {...register('letterNature')}
-                  className="input"
-                  defaultValue="BIASA"
-                >
-                  <option value="BIASA">Biasa</option>
-                  <option value="TERBATAS">Terbatas</option>
-                  <option value="RAHASIA">Rahasia</option>
-                  <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
-                  <option value="PENTING">Penting</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2 form-group">
-                <label className="form-label form-label-required">
-                  Subjek Surat
-                </label>
-                <input
-                  {...register('subject', { 
-                    required: 'Subjek wajib diisi',
-                    minLength: { value: 5, message: 'Subjek minimal 5 karakter' }
-                  })}
-                  type="text"
-                  className={`input ${errors.subject ? 'input-error' : ''}`}
-                  placeholder="Masukkan subjek surat"
-                />
-                {errors.subject && (
-                  <p className="form-error">{errors.subject.message}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label form-label-required">
-                  Pengirim
-                </label>
-                <input
-                  {...register('sender', { 
-                    required: 'Pengirim wajib diisi',
-                    minLength: { value: 2, message: 'Nama pengirim minimal 2 karakter' }
-                  })}
-                  type="text"
-                  className={`input ${errors.sender ? 'input-error' : ''}`}
-                  placeholder="Nama pengirim atau instansi"
-                />
-                {errors.sender && (
-                  <p className="form-error">{errors.sender.message}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label form-label-required">
-                  Penerima
-                </label>
-                <input
-                  {...register('recipient', { 
-                    required: 'Penerima wajib diisi',
-                    minLength: { value: 2, message: 'Nama penerima minimal 2 karakter' }
-                  })}
-                  type="text"
-                  className={`input ${errors.recipient ? 'input-error' : ''}`}
-                  placeholder="Nama penerima atau instansi"
-                />
-                {errors.recipient && (
-                  <p className="form-error">{errors.recipient.message}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label form-label-required">
-                  Pengolah
-                </label>
-                <input
-                  {...register('processor', { 
-                    required: 'Pengolah wajib diisi',
-                    minLength: { value: 2, message: 'Nama pengolah minimal 2 karakter' }
-                  })}
-                  type="text"
-                  className={`input ${errors.processor ? 'input-error' : ''}`}
-                  placeholder="Nama pengolah"
-                />
-                {errors.processor && (
-                  <p className="form-error">{errors.processor.message}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label form-label-required">
-                  Tanggal Diterima
-                </label>
-                <input
-                  {...register('receivedDate', { 
-                    required: 'Tanggal diterima wajib diisi',
-                    validate: (value) => {
-                      const date = new Date(value);
-                      const now = new Date();
-                      if (date > now) {
-                        return 'Tanggal tidak boleh di masa depan';
-                      }
-                      return true;
-                    }
-                  })}
-                  type="datetime-local"
-                  className={`input ${errors.receivedDate ? 'input-error' : ''}`}
-                  max={new Date().toISOString().slice(0, 16)}
-                />
-                {errors.receivedDate && (
-                  <p className="form-error">{errors.receivedDate.message}</p>
-                )}
-              </div>
-
-              {/* Catatan (sebelumnya Keterangan) */}
-              <div className="md:col-span-2 form-group">
-                <label className="form-label">
-                  Catatan
-                </label>
-                <textarea
-                  {...register('note')}
-                  rows={3}
-                  className="input"
-                  placeholder="Masukkan catatan tambahan (opsional)"
-                />
-              </div>
+      <div className="flex flex-col md:flex-row min-h-[calc(100vh-150px)] bg-gray-50 rounded-xl shadow-sm">
+        <div className="w-full md:w-1/3 lg:w-1/4 bg-white rounded-l-xl border-r border-gray-200 p-4">
+          <div className="flex items-center space-x-3 mb-6 p-2">
+            <Link href="/letters/incoming" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </Link>
+            <div>
+              <h1 className="font-bold text-lg text-gray-800">Tambah Surat Baru</h1>
             </div>
           </div>
+          <VerticalStepper currentStep={currentStep} />
+        </div>
 
-          {/* Disposition Method Section */}
-          <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.1s' }}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
-              Metode Disposisi
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="form-group">
-                <label className="form-label form-label-required">
-                  Pilih Metode Disposisi
-                </label>
-                <select
-                  {...register('dispositionMethod', { required: 'Metode disposisi wajib dipilih' })}
-                  className={`input ${errors.dispositionMethod ? 'input-error' : ''}`}
-                  defaultValue=""
-                >
-                  <option value="">Pilih...</option>
-                  <option value="MANUAL">Manual</option>
-                  <option value="SRIKANDI">Srikandi</option>
-                </select>
-                {errors.dispositionMethod && (
-                  <p className="form-error">{errors.dispositionMethod.message}</p>
-                )}
-              </div>
+        <div className="w-full md:w-2/3 lg:w-3/4 p-6 md:p-10">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+            <div className="flex-grow">
+              <h2 className="section-title text-[#023538]">
+                Langkah {currentStep}:{" "}
+                {currentStep === 1 && "Informasi Utama Surat"}
+                {currentStep === 2 && "Detail Proses & Berkas"}
+                {currentStep === 3 && "Tindak Lanjut & Acara"}
+              </h2>
+              <p className="section-description mb-8">
+                Pastikan semua data yang ditandai dengan (*) terisi dengan benar.
+              </p>
 
-              {dispositionMethod === 'SRIKANDI' && (
-                <div className="form-group">
-                  <label className="form-label form-label-required">
-                    Nomor Disposisi Srikandi
-                  </label>
-                  <input
-                    {...register('srikandiDispositionNumber', {
-                      required: 'Nomor disposisi Srikandi wajib diisi jika metode Srikandi dipilih',
-                      minLength: { value: 3, message: 'Nomor disposisi minimal 3 karakter' }
-                    })}
-                    type="text"
-                    className={`input ${errors.srikandiDispositionNumber ? 'input-error' : ''}`}
-                    placeholder="Contoh: SRIKANDI/001/2024"
-                  />
-                  {errors.srikandiDispositionNumber && (
-                    <p className="form-error">{errors.srikandiDispositionNumber.message}</p>
+              {currentStep === 1 && (
+                <div className="animate-fade-in space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Nomor Surat</label>
+                      <input
+                        {...register("letterNumber", { required: "Nomor surat wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.letterNumber ? "input-error" : ""}`}
+                        placeholder="Contoh: 001/SK/2024"
+                      />
+                      {errors.letterNumber && <p className="form-error">{errors.letterNumber.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Tanggal Surat</label>
+                      <input {...register("letterDate")} type="date" className={`input ${inputFocusStyle}`} />
+                    </div>
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label form-label-required">Subjek Surat</label>
+                      <input
+                        {...register("subject", { required: "Subjek wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.subject ? "input-error" : ""}`}
+                        placeholder="Masukkan subjek surat"
+                      />
+                      {errors.subject && <p className="form-error">{errors.subject.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Pengirim</label>
+                      <input
+                        {...register("sender", { required: "Pengirim wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.sender ? "input-error" : ""}`}
+                        placeholder="Nama pengirim atau instansi"
+                      />
+                      {errors.sender && <p className="form-error">{errors.sender.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Penerima</label>
+                      <input
+                        {...register("recipient", { required: "Penerima wajib diisi" })}
+                        type="text"
+                        className={`input ${inputFocusStyle} ${errors.recipient ? "input-error" : ""}`}
+                        placeholder="Nama penerima atau instansi"
+                      />
+                      {errors.recipient && <p className="form-error">{errors.recipient.message}</p>}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Sifat Surat</label>
+                      <select {...register("letterNature")} className={`input ${inputFocusStyle}`} defaultValue="BIASA">
+                        <option value="BIASA">Biasa</option>
+                        <option value="PENTING">Penting</option>
+                        <option value="TERBATAS">Terbatas</option>
+                        <option value="RAHASIA">Rahasia</option>
+                        <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label form-label-required">Tanggal Diterima</label>
+                      <input
+                        {...register("receivedDate", { required: "Tanggal diterima wajib diisi" })}
+                        type="datetime-local"
+                        className={`input ${inputFocusStyle} ${errors.receivedDate ? "input-error" : ""}`}
+                        max={new Date().toISOString().slice(0, 16)}
+                      />
+                      {errors.receivedDate && <p className="form-error">{errors.receivedDate.message}</p>}
+                    </div>
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Catatan</label>
+                      <textarea
+                        {...register("note")}
+                        rows={3}
+                        className={`input ${inputFocusStyle}`}
+                        placeholder="Masukkan catatan tambahan (opsional)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 2 && (
+                <div className="animate-fade-in">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="space-y-6">
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Pengolah</label>
+                        <input
+                          {...register("processor", { required: "Pengolah wajib diisi" })}
+                          type="text"
+                          className={`input ${inputFocusStyle} ${errors.processor ? "input-error" : ""}`}
+                          placeholder="Nama pengolah"
+                        />
+                        {errors.processor && <p className="form-error">{errors.processor.message}</p>}
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Metode Disposisi</label>
+                        <select
+                          {...register("dispositionMethod", { required: "Metode disposisi wajib dipilih" })}
+                          className={`input ${inputFocusStyle} ${errors.dispositionMethod ? "input-error" : ""}`}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Pilih...</option>
+                          <option value="MANUAL">Manual</option>
+                          <option value="SRIKANDI">Srikandi</option>
+                        </select>
+                        {errors.dispositionMethod && <p className="form-error">{errors.dispositionMethod.message}</p>}
+                      </div>
+                      {dispositionMethod === "SRIKANDI" && (
+                        <div className="form-group animate-fade-in">
+                          <label className="form-label form-label-required">Nomor Disposisi Srikandi</label>
+                          <input
+                            {...register("srikandiDispositionNumber", {
+                              required: "Nomor disposisi Srikandi wajib diisi",
+                            })}
+                            type="text"
+                            className={`input ${inputFocusStyle} ${errors.srikandiDispositionNumber ? "input-error" : ""}`}
+                            placeholder="Contoh: SRIKANDI/001/2024"
+                          />
+                          {errors.srikandiDispositionNumber && (
+                            <p className="form-error">{errors.srikandiDispositionNumber.message}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="form-label">File Lampiran (Opsional)</label>
+                      {!selectedFile ? (
+                         <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                          <input
+                            id="file"
+                            type="file"
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            onChange={handleFileChange}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <div className="flex flex-col items-center">
+                            <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                            <span className="text-sm font-medium text-primary-700">Klik atau jatuhkan file di sini</span>
+                            <span className="text-xs text-gray-500 mt-1">Maks. 10MB</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border">
+                           <div className="flex items-center space-x-3 overflow-hidden">
+                            <FileText className="h-8 w-8 text-gray-500 flex-shrink-0" />
+                            <div className="truncate">
+                              <p className="text-sm font-medium text-gray-900 truncate">{selectedFile.name}</p>
+                              <p className="text-sm text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                          </div>
+                          <button type="button" onClick={removeFile} className="text-red-600 hover:text-red-800 p-1">
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 3 && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* --- [PERUBAHAN] Opsi menjadi Toggle Cards murni Tailwind --- */}
+                    <label
+                      htmlFor="isInvitation"
+                      className={`flex flex-col space-y-1 cursor-pointer rounded-lg border-2 p-4 text-center transition-all duration-200 hover:shadow-md ${
+                        isInvitation
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <input {...register("isInvitation")} type="checkbox" id="isInvitation" className="sr-only" />
+                      <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 ${
+                          isInvitation ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        <Calendar className="h-6 w-6" />
+                      </div>
+                      <span className="font-semibold">Ini adalah Undangan/Acara</span>
+                      <p className="text-sm text-gray-500">Aktifkan jika surat ini berisi jadwal acara.</p>
+                    </label>
+
+                    <label
+                      htmlFor="needsFollowUp"
+                      className={`flex flex-col space-y-1 cursor-pointer rounded-lg border-2 p-4 text-center transition-all duration-200 hover:shadow-md ${
+                        needsFollowUp
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <input {...register("needsFollowUp")} type="checkbox" id="needsFollowUp" className="sr-only" />
+                       <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 ${
+                          needsFollowUp ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        <MousePointerSquare className="h-6 w-6" />
+                      </div>
+                      <span className="font-semibold">Perlu Tindak Lanjut</span>
+                      <p className="text-sm text-gray-500">Aktifkan jika surat ini memerlukan respons.</p>
+                    </label>
+                  </div>
+
+                  {isInvitation && (
+                    <div className="card p-6 border-primary-200 border animate-fade-in">
+                       <h3 className="font-semibold text-gray-800 mb-4">Detail Acara</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="form-group">
+                            <label className="form-label form-label-required">Tanggal Acara</label>
+                            <input
+                              {...register("eventDate", { required: "Tanggal acara wajib diisi" })}
+                              type="date"
+                              className={`input ${inputFocusStyle} ${errors.eventDate ? "input-error" : ""}`}
+                            />
+                            {errors.eventDate && <p className="form-error">{errors.eventDate.message}</p>}
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Waktu Acara</label>
+                            <input {...register("eventTime")} type="time" className={`input ${inputFocusStyle}`} />
+                          </div>
+                          <div className="form-group md:col-span-2">
+                            <label className="form-label">Lokasi Acara</label>
+                            <input {...register("eventLocation")} type="text" placeholder="Contoh: Ruang Rapat Utama" className={`input ${inputFocusStyle}`} />
+                          </div>
+                          <div className="form-group md:col-span-2">
+                            <label className="form-label">Catatan Acara</label>
+                            <textarea {...register("eventNotes")} rows={3} className={`input ${inputFocusStyle}`} placeholder="Catatan tambahan untuk acara (opsional)"/>
+                          </div>
+                        </div>
+                    </div>
+                  )}
+                  {needsFollowUp && (
+                     <div className="card p-6 border-emerald-200 border animate-fade-in">
+                        <h3 className="font-semibold text-gray-800 mb-4">Detail Tindak Lanjut</h3>
+                        <div className="form-group">
+                            <label className="form-label form-label-required">Deadline Tindak Lanjut</label>
+                            <input
+                                {...register("followUpDeadline", { required: "Deadline wajib diisi" })}
+                                type="date"
+                                className={`input ${inputFocusStyle} ${errors.followUpDeadline ? "input-error" : ""}`}
+                            />
+                            {errors.followUpDeadline && <p className="form-error">{errors.followUpDeadline.message}</p>}
+                        </div>
+                    </div>
                   )}
                 </div>
               )}
             </div>
-          </div>
 
-
-          {/* Invitation Section */}
-          <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center mb-6">
-              <input
-                {...register('isInvitation')}
-                type="checkbox"
-                id="isInvitation"
-                className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
-              <label htmlFor="isInvitation" className="ml-3 text-sm font-medium text-gray-700">
-                Ini adalah undangan/acara
-              </label>
-            </div>
-
-            {isInvitation && (
-              <div className="space-y-6 border-t pt-6 animate-fade-in">
-                <h3 className="text-md font-semibold text-gray-900 flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-purple-600" />
-                  Detail Acara
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="form-group">
-                    <label className="form-label">
-                      Tanggal Acara
-                    </label>
-                    <input
-                      {...register('eventDate', {
-                        validate: (value) => {
-                          if (isInvitation && !value) {
-                            return 'Tanggal acara wajib diisi untuk undangan';
-                          }
-                          if (value) {
-                            const eventDate = new Date(value);
-                            const receivedDate = new Date(watch('receivedDate'));
-                            if (eventDate <= receivedDate) {
-                              return 'Tanggal acara harus setelah tanggal diterima';
-                            }
-                          }
-                          return true;
-                        }
-                      })}
-                      type="date"
-                      className={`input ${errors.eventDate ? 'input-error' : ''}`}
-                    />
-                    {errors.eventDate && (
-                      <p className="form-error">{errors.eventDate.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">
-                      Waktu Acara
-                    </label>
-                    <input
-                      {...register('eventTime')}
-                      type="time"
-                      className="input"
-                      placeholder="Contoh: 14:00"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">
-                      Lokasi Acara
-                    </label>
-                    <input
-                      {...register('eventLocation')}
-                      type="text"
-                      className="input"
-                      placeholder="Masukkan lokasi acara"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">
-                      Catatan Acara
-                    </label>
-                    <textarea
-                      {...register('eventNotes')}
-                      rows={3}
-                      className="input"
-                      placeholder="Masukkan catatan tambahan untuk acara"
-                    />
-                  </div>
-                </div>
+            <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-between">
+              <div>{currentStep > 1 && (<button type="button" onClick={handlePrevStep} className="btn btn-secondary"><ArrowLeft className="h-4 w-4 mr-2" />Sebelumnya</button>)}</div>
+              <div>
+                {currentStep < 3 && (<button type="button" onClick={handleNextStep} className="btn btn-primary">Berikutnya<ChevronRight className="h-4 w-4 ml-2" /></button>)}
+                {currentStep === 3 && (<button type="submit" disabled={createLetterMutation.isLoading} className="btn bg-[#12A168] hover:bg-[#0e7d52] text-white disabled:opacity-70">{createLetterMutation.isLoading ? (<><div className="loading-spinner h-4 w-4 mr-2"></div>Menyimpan...</>) : (<><Send className="h-4 w-4 mr-2" />Simpan Surat</>)}</button>)}
               </div>
-            )}
-          </div>
-
-          {/* Follow-up Section */}
-          <div className="card p-6 bg-[#EBFDF9] animate-slide-in" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center mb-6">
-              <input
-                {...register('needsFollowUp')}
-                type="checkbox"
-                id="needsFollowUp"
-                className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-              />
-              <label htmlFor="needsFollowUp" className="ml-3 text-sm font-medium text-gray-700">
-                Surat ini perlu ditindaklanjuti
-              </label>
             </div>
-
-            {needsFollowUp && (
-              <div className="space-y-6 border-t pt-6 animate-fade-in">
-                <h3 className="text-md font-semibold text-gray-900 flex items-center">
-                  <CheckCircle className="h-5 w-5 mr-2 text-emerald-600" />
-                  Detail Tindak Lanjut
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="form-group">
-                    <label className="form-label form-label-required">
-                      Deadline Tindak Lanjut
-                    </label>
-                    <input
-                      {...register('followUpDeadline', {
-                        required: needsFollowUp ? 'Deadline tindak lanjut wajib diisi' : false,
-                        validate: (value) => {
-                          if (needsFollowUp && value) {
-                            const deadlineDate = new Date(value);
-                            const receivedDate = new Date(watch('receivedDate'));
-                            receivedDate.setHours(0, 0, 0, 0);
-                            deadlineDate.setHours(0, 0, 0, 0);
-
-                            if (deadlineDate <= receivedDate) {
-                                return 'Deadline tindak lanjut harus setelah tanggal diterima';
-                            }
-                          }
-                          return true;
-                        }
-                      })}
-                      type="date"
-                      className={`input ${errors.followUpDeadline ? 'input-error' : ''}`}
-                    />
-                    {errors.followUpDeadline && (
-                      <p className="form-error">{errors.followUpDeadline.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Form Actions */}
-          <div
-            className="flex justify-start space-x-4 animate-slide-in"
-            style={{ animationDelay: '0.4s' }}
-          >
-            <button
-              type="submit"
-              disabled={createLetterMutation.isLoading}
-              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                createLetterMutation.isLoading
-                  ? 'bg-[#12A168] opacity-70 cursor-not-allowed text-white'
-                  : 'bg-[#12A168] hover:bg-[#0e7d52] text-white'
-              }`}
-            >
-              {createLetterMutation.isLoading ? (
-                <>
-                  <div className="loading-spinner h-4 w-4 mr-2"></div>
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Tambah
-                </>
-              )}
-            </button>
-
-            <Link
-              href="/letters/incoming"
-              className="btn btn-secondary"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Batal
-            </Link>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </Layout>
-  );
+  )
 }

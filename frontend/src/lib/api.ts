@@ -1,3 +1,5 @@
+// Lokasi: src/lib/api.ts
+
 import axios, { AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-hot-toast';
@@ -7,7 +9,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -17,12 +19,18 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor untuk menambahkan token auth
     this.client.interceptors.request.use(
       (config) => {
         const token = Cookies.get('authToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        // --- PERBAIKAN BUG ---
+        // Hapus header Content-Type default jika data adalah FormData
+        // Browser akan mengaturnya secara otomatis dengan boundary yang benar
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type'];
         }
         return config;
       },
@@ -31,21 +39,23 @@ class ApiClient {
       }
     );
 
-    // Response interceptor for error handling
+    // Response interceptor untuk error handling
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
         const message = error.response?.data?.error || error.message || 'An error occurred';
         
         if (error.response?.status === 401) {
-          // Unauthorized - remove token and redirect to login
           Cookies.remove('authToken');
-          window.location.href = '/auth/login';
+          // Pastikan hanya berjalan di sisi klien
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login';
+          }
           return Promise.reject(error);
         }
 
         if (error.response?.status >= 500) {
-          toast.error('Server error. Please try again later.');
+          toast.error('Terjadi kesalahan pada server. Silakan coba lagi nanti.');
         }
 
         return Promise.reject(error);
@@ -76,12 +86,7 @@ class ApiClient {
   }
 
   // Incoming Letters methods
-  async getIncomingLetters(params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    category?: string;
-  }) {
+  async getIncomingLetters(params?: { page?: number; limit?: number; search?: string; category?: string; }) {
     const response = await this.client.get('/incoming-letters', { params });
     return response.data;
   }
@@ -92,20 +97,13 @@ class ApiClient {
   }
 
   async createIncomingLetter(data: FormData) {
-    const response = await this.client.post('/incoming-letters', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Header 'multipart/form-data' akan diatur otomatis oleh browser
+    const response = await this.client.post('/incoming-letters', data);
     return response.data;
   }
 
   async updateIncomingLetter(id: string, data: FormData) {
-    const response = await this.client.put(`/incoming-letters/${id}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await this.client.put(`/incoming-letters/${id}`, data);
     return response.data;
   }
 
@@ -115,12 +113,7 @@ class ApiClient {
   }
 
   // Outgoing Letters methods
-  async getOutgoingLetters(params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    category?: string;
-  }) {
+  async getOutgoingLetters(params?: { page?: number; limit?: number; search?: string; category?: string; }) {
     const response = await this.client.get('/outgoing-letters', { params });
     return response.data;
   }
@@ -131,20 +124,12 @@ class ApiClient {
   }
 
   async createOutgoingLetter(data: FormData) {
-    const response = await this.client.post('/outgoing-letters', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await this.client.post('/outgoing-letters', data);
     return response.data;
   }
 
   async updateOutgoingLetter(id: string, data: FormData) {
-    const response = await this.client.put(`/outgoing-letters/${id}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await this.client.put(`/outgoing-letters/${id}`, data);
     return response.data;
   }
 
@@ -153,12 +138,39 @@ class ApiClient {
     return response.data;
   }
 
+  // --- FUNGSI BARU UNTUK DISPOSISI ---
+  // Dispositions methods
+  async getDispositionsByLetter(letterId: string) {
+    // Menggunakan URL yang benar sesuai rute backend
+    const response = await this.client.get(`/dispositions/letter/${letterId}`);
+    return response.data;
+  }
+  // Anda bisa menambahkan create/update/delete disposition di sini jika perlu
+
+  // --- FUNGSI BARU UNTUK FILE INFO ---
+  // File methods
+  async getFileInfo(id: string, type: 'incoming' | 'outgoing') {
+    const response = await this.client.get(`/files/${type}/${id}/info`);
+    return response.data;
+  }
+
+    // --- TAMBAHKAN DUA FUNGSI BARU INI UNTUK FILE ---
+  async downloadFile(type: 'incoming' | 'outgoing', id: string) {
+    // Meminta data sebagai 'blob' dan mengembalikan seluruh respons
+    // agar kita bisa mengakses header dan data file-nya.
+    return this.client.get(`/files/${type}/${id}`, {
+      responseType: 'blob',
+    });
+  }
+
+  async previewFile(type: 'incoming' | 'outgoing', id: string) {
+    return this.client.get(`/files/${type}/${id}/preview`, {
+      responseType: 'blob',
+    });
+  }
+
   // Notifications methods
-  async getNotifications(params?: {
-    page?: number;
-    limit?: number;
-    unreadOnly?: boolean;
-  }) {
+  async getNotifications(params?: { page?: number; limit?: number; unreadOnly?: boolean; }) {
     const response = await this.client.get('/notifications', { params });
     return response.data;
   }
@@ -191,5 +203,5 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient();
+const apiClient = new ApiClient();
 export default apiClient;

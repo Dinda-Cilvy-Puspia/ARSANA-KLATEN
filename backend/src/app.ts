@@ -62,8 +62,8 @@ const limiter = rateLimit({
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true, 
+  legacyHeaders: false,
   handler: (req, res) => {
     logger.warn('Rate limit exceeded', {
       ip: req.ip,
@@ -78,19 +78,23 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// --- PERBAIKAN DI SINI ---
 // CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['http://localhost:3000'] // Add your frontend domain in production
+    ? ['http://localhost:3000'] // Ganti dengan domain frontend Anda di produksi
     : ['http://localhost:3000'],
-  credentials: true
-}));
+  credentials: true,
+  exposedHeaders: ['Content-Disposition'], // <-- BARIS INI DITAMBAHKAN
+};
+
+app.use(cors(corsOptions));
+
 
 // Body parsing middleware
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf, encoding) => {
-    // Log large payloads in development
     if (process.env.NODE_ENV === 'development' && buf.length > 1024 * 1024) {
       devLogger.warn(`Large JSON payload: ${Math.round(buf.length / 1024)}KB`);
     }
@@ -100,7 +104,6 @@ app.use(express.urlencoded({
   extended: true, 
   limit: '10mb',
   verify: (req, res, buf, encoding) => {
-    // Log large payloads in development
     if (process.env.NODE_ENV === 'development' && buf.length > 1024 * 1024) {
       devLogger.warn(`Large form payload: ${Math.round(buf.length / 1024)}KB`);
     }
@@ -184,6 +187,5 @@ app.listen(PORT, () => {
 console.log('Server timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
 console.log('Server local time:', new Date().toString());
 console.log('Server UTC time:', new Date().toUTCString());
-
 
 export default app;
