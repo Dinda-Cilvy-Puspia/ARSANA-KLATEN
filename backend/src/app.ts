@@ -1,5 +1,6 @@
+// backend/src/app.ts
+
 import express, { Express } from 'express';
-// PERBAIKAN: Impor CorsOptions untuk digunakan sebagai tipe
 import cors, { CorsOptions } from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -34,94 +35,61 @@ const prisma = new PrismaClient();
 const logsDir = path.join(__dirname, '../logs');
 const uploadsDir = path.join(__dirname, '../uploads');
 
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-  devLogger.info('Created logs directory');
-}
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  devLogger.info('Created uploads directory');
-}
+if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // Middleware Logging
-const loggerMiddlewares = requestLogger();
-loggerMiddlewares.forEach(middleware => app.use(middleware));
+app.use(requestLogger());
 app.use(detailedRequestLogger);
 
 // Middleware Keamanan
 app.use(helmet());
 
-// Middleware Rate Limiting
+// Konfigurasi Rate Limiter
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-    retryAfter: '15 minutes'
-  },
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: process.env.NODE_ENV === 'production' ? 100 : 2000,
+  message: { error: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi nanti.' },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res) => {
-    logger.warn('Rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-      url: req.originalUrl
-    });
-    res.status(429).json({
-      error: 'Too many requests from this IP, please try again later.',
-      retryAfter: '15 minutes'
-    });
-  }
+  handler: (req, res, _, options) => {
+    logger.warn('Rate limit exceeded', { ip: req.ip, path: req.path });
+    res.status(options.statusCode).send(options.message);
+  },
+  // [PENTING] Mengabaikan rate limit untuk permintaan dari localhost
+  skip: (req) => req.ip === '::1' || req.ip === '127.0.0.1',
 });
 app.use(limiter);
 
-// Konfigurasi CORS yang Fleksibel
+// Konfigurasi CORS
 const allowedOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:3000'];
-
-// PERBAIKAN: Menambahkan tipe eksplisit untuk parameter 'origin' dan 'callback'
 const corsOptions: CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Izinkan request tanpa origin (seperti dari Postman) atau jika origin ada di daftar yang diizinkan
+  origin: (origin, callback) => {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error('Akses diblokir oleh kebijakan CORS'));
     }
   },
   credentials: true,
   exposedHeaders: ['Content-Disposition'],
 };
-
 app.use(cors(corsOptions));
 
 // Middleware Body Parser
-app.use(express.json({
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    if (process.env.NODE_ENV === 'development' && buf.length > 1024 * 1024) {
-      devLogger.warn(`Large JSON payload: ${Math.round(buf.length / 1024)}KB`);
-    }
-  }
-}));
-app.use(express.urlencoded({
-  extended: true,
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    if (process.env.NODE_ENV === 'development' && buf.length > 1024 * 1024) {
-      devLogger.warn(`Large form payload: ${Math.round(buf.length / 1024)}KB`);
-    }
-  }
-}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Middleware untuk menyajikan file statis
+// Middleware untuk menyajikan file statis dari direktori 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Definisi Rute API
+// =================================================================
+// Definisi Rute API (DIKEMBALIKAN KE VERSI ASLI)
+// =================================================================
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/incoming-letters', incomingLetterRoutes);
-app.use('/api/outgoing-letters', outgoingLetterRoutes);
+app.use('/api/incoming-letters', incomingLetterRoutes); // <-- DIKEMBALIKAN
+app.use('/api/outgoing-letters', outgoingLetterRoutes); // <-- DIKEMBALIKAN
 app.use('/api/dispositions', dispositionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/calendar', calendarRoutes);
@@ -129,13 +97,7 @@ app.use('/api/files', fileRoutes);
 
 // Rute Health Check
 app.get('/api/health', (req, res) => {
-  const healthData = {
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  };
-  devLogger.info('Health check requested');
-  res.json(healthData);
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Middleware Penanganan Error
@@ -143,49 +105,47 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Memulai Cron Jobs
-startCronJobs();
-logger.info('Cron jobs started');
+if (process.env.NODE_ENV !== 'test') {
+  startCronJobs();
+  logger.info('Cron jobs started');
+}
 
 // Fungsi Graceful Shutdown
 const gracefulShutdown = async (signal: string) => {
-  logger.info(`${signal} received, shutting down gracefully...`);
+  logger.info(`${signal} diterima, server akan dimatikan...`);
   try {
     await prisma.$disconnect();
-    logger.info('Database connection closed');
+    logger.info('Koneksi database berhasil ditutup.');
     process.exit(0);
   } catch (error) {
-    logger.error('Error during graceful shutdown', error);
+    logger.error('Error saat graceful shutdown:', error);
     process.exit(1);
   }
 };
-
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 const PORT = process.env.PORT || 5000;
 
-// Fungsi Tes Koneksi Database
-async function testConnection() {
+// Fungsi tes koneksi database
+async function testDbConnection() {
   try {
-    await prisma.$queryRaw`SELECT NOW()`;
-    logger.info("✅ Database connection successful.");
+    await prisma.$queryRaw`SELECT 1`;
+    logger.info("✅ Koneksi database berhasil.");
   } catch (err) {
-    logger.error("❌ Database connection failed:", err);
+    logger.error("❌ Gagal terhubung ke database:", err);
   }
 }
 
 // Menjalankan server
 app.listen(PORT, async () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  await testConnection();
+  logger.info(`🚀 Server berjalan di port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  await testDbConnection();
 
-  // Hanya tampilkan daftar endpoint di mode development
   if (process.env.NODE_ENV === 'development') {
-    console.log("Registered Endpoints:");
-    console.table(listEndpoints(app));
-    devLogger.info('Development logging enabled');
+    const endpoints = listEndpoints(app).map(e => ({ path: e.path, methods: e.methods.join(', ') }));
+    console.log("\nEndpoints Terdaftar:");
+    console.table(endpoints);
   }
 });
 

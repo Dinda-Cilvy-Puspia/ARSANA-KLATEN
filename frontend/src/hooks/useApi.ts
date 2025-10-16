@@ -1,17 +1,12 @@
-// Lokasi: src/hooks/useApi.ts
+// frontend/src/hooks/useApi.ts
 
-import { useQuery, useMutation, useQueryClient, QueryKey } from 'react-query';
+import { useQuery, useMutation, useQueryClient, type QueryKey } from 'react-query';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/lib/api';
-import { 
+import type { 
   IncomingLetter, 
   OutgoingLetter, 
-  CreateIncomingLetterRequest,
-  CreateOutgoingLetterRequest
 } from '@/types';
-
-// Fungsi createFormData tidak lagi digunakan di file ini
-// import { createFormData } from '@/lib/utils';
 
 // Definisikan tipe untuk error API agar lebih aman
 interface ApiError {
@@ -23,7 +18,7 @@ interface ApiError {
 }
 
 // ============================================================================
-// Generic Mutation Hook (Tidak Berubah, sudah baik)
+// Generic Mutation Hook (Sudah Baik)
 // ============================================================================
 const useApiMutation = <TData, TVariables>(
   mutationFn: (variables: TVariables) => Promise<TData>,
@@ -57,13 +52,15 @@ export const useIncomingLetters = (params?: { page?: number; limit?: number; sea
 };
 
 export const useIncomingLetter = (id?: string) => {
-  return useQuery(['incomingLetter', id], () => apiClient.getIncomingLetterById(id!), {
-    enabled: !!id,
-  });
+  return useQuery(['incomingLetter', id], 
+    // ✅ PERBAIKAN UTAMA DI SINI: Langsung ekstrak `data` dari response
+    () => apiClient.getIncomingLetterById(id!).then(response => response.data), 
+    {
+      enabled: !!id,
+    }
+  );
 };
 
-// --- PERBAIKAN ---
-// Hook sekarang secara eksplisit menerima FormData
 export const useCreateIncomingLetter = () => {
   const queryClient = useQueryClient();
   
@@ -72,7 +69,7 @@ export const useCreateIncomingLetter = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['incomingLetters']);
-        toast.success('Surat masuk berhasil dibuat');
+        // Tidak perlu toast di sini, karena sudah ditangani di komponen
       },
       onError: (error: ApiError) => {
         const message = error.response?.data?.error || 'Gagal membuat surat masuk';
@@ -82,8 +79,6 @@ export const useCreateIncomingLetter = () => {
   );
 };
 
-// --- PERBAIKAN ---
-// Hook update juga menerima FormData
 export const useUpdateIncomingLetter = () => {
   const queryClient = useQueryClient();
   
@@ -93,17 +88,17 @@ export const useUpdateIncomingLetter = () => {
       onSuccess: (_, { id }) => {
         queryClient.invalidateQueries(['incomingLetters']);
         queryClient.invalidateQueries(['incomingLetter', id]);
-        toast.success('Surat masuk berhasil diperbarui');
+        // Toast sudah ditangani oleh `toast.promise` di komponen, jadi tidak perlu di sini
       },
       onError: (error: ApiError) => {
         const message = error.response?.data?.error || 'Gagal memperbarui surat masuk';
-        toast.error(message);
+        // Biarkan `toast.promise` di komponen yang menangani pesan error
+        throw new Error(message);
       },
     }
   );
 };
 
-// Optimistic Update (Tidak Berubah, sudah baik)
 export const useDeleteIncomingLetter = () => {
   const queryClient = useQueryClient();
 
@@ -126,13 +121,14 @@ export const useDeleteIncomingLetter = () => {
       if (context?.previousLetters) {
         queryClient.setQueryData(['incomingLetters'], context.previousLetters);
       }
-      toast.error('Gagal menghapus surat masuk');
+      // Toast sudah ditangani di komponen
     },
     onSettled: () => {
       queryClient.invalidateQueries(['incomingLetters']);
     },
   });
 };
+
 
 // ============================================================================
 // Hooks Surat Keluar (Outgoing Letters)
@@ -145,14 +141,16 @@ export const useOutgoingLetters = (params?: { page?: number; limit?: number; sea
   });
 };
 
-export const useOutgoingLetter = (id: string) => {
-  return useQuery(['outgoingLetter', id], () => apiClient.getOutgoingLetterById(id), {
-    enabled: !!id,
-  });
+export const useOutgoingLetter = (id?: string) => {
+  return useQuery(['outgoingLetter', id],
+    // ✅ PERBAIKAN DI SINI
+    () => apiClient.getOutgoingLetterById(id!).then(response => response.data),
+    {
+      enabled: !!id,
+    }
+  );
 };
 
-// --- PERBAIKAN ---
-// Menerapkan pola yang sama untuk Surat Keluar
 export const useCreateOutgoingLetter = () => {
   const queryClient = useQueryClient();
   
@@ -161,7 +159,7 @@ export const useCreateOutgoingLetter = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['outgoingLetters']);
-        toast.success('Surat keluar berhasil dibuat');
+        // Toast akan ditangani di komponen
       },
       onError: (error: ApiError) => {
         const message = error.response?.data?.error || 'Gagal membuat surat keluar';
@@ -171,22 +169,22 @@ export const useCreateOutgoingLetter = () => {
   );
 };
 
-// --- PERBAIKAN ---
-// Menerapkan pola yang sama untuk Surat Keluar
 export const useUpdateOutgoingLetter = () => {
   const queryClient = useQueryClient();
 
   return useMutation(
+    // ✅ PERBAIKAN DI SINI: Menerima { id, formData }
     ({ id, formData }: { id: string; formData: FormData }) => apiClient.updateOutgoingLetter(id, formData),
     {
       onSuccess: (_, { id }) => {
         queryClient.invalidateQueries(['outgoingLetters']);
         queryClient.invalidateQueries(['outgoingLetter', id]);
-        toast.success('Surat keluar berhasil diperbarui');
+        // Toast akan ditangani oleh toast.promise di komponen
       },
       onError: (error: ApiError) => {
         const message = error.response?.data?.error || 'Gagal memperbarui surat keluar';
-        toast.error(message);
+        // Biarkan toast.promise di komponen yang menangani error
+        throw new Error(message);
       },
     }
   );
@@ -201,28 +199,21 @@ export const useDeleteOutgoingLetter = () => {
   );
 };
 
-// ============================================================================
-// Hooks untuk File
-// ============================================================================
 
-// --- TAMBAHKAN HOOK BARU INI ---
+// ...// ============================================================================
+
 export const useFileInfo = (params: { id?: string; type?: 'incoming' | 'outgoing' }) => {
   const { id, type } = params;
   return useQuery(
-    ['fileInfo', type, id], // Query key yang unik
+    ['fileInfo', type, id],
     () => apiClient.getFileInfo(id!, type!),
     {
-      enabled: !!id && !!type, // Hanya aktif jika id dan type ada
-      staleTime: 5 * 60 * 1000, // Cache selama 5 menit
-      retry: false, // Jangan coba lagi jika 404 (file tidak ditemukan)
+      enabled: !!id && !!type,
+      staleTime: 5 * 60 * 1000,
+      retry: false,
     }
   );
 };
-
-// ============================================================================
-// Hooks Notifikasi & Kalender (Tidak Berubah)
-// ============================================================================
-// (Sisa kode Anda dari sini ke bawah sudah baik dan tidak perlu diubah)
 
 export const useNotifications = (params?: { page?: number; limit?: number; unreadOnly?: boolean; }) => {
   return useQuery(['notifications', params], () => apiClient.getNotifications(params), {

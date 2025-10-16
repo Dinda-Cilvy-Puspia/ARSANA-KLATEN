@@ -1,3 +1,5 @@
+// frontend/src/pages/letters/incoming/[id]/edit.tsx
+
 "use client"
 
 import type React from "react"
@@ -12,7 +14,6 @@ import {
   FileText,
   CheckCircle,
   BookOpen,
-  Send,
   ClipboardList,
   ChevronRight,
   Save,
@@ -23,8 +24,8 @@ import Layout from "@/components/Layout/Layout"
 import Link from "next/link"
 import { toast } from "react-hot-toast"
 
-// Tipe data final untuk form (disamakan dengan create.tsx)
-interface NewCreateIncomingLetterRequest {
+// Tipe data final untuk form
+interface FormData {
   receivedDate: string
   letterNumber: string
   letterDate?: string
@@ -45,27 +46,11 @@ interface NewCreateIncomingLetterRequest {
   followUpDeadline?: string
 }
 
-// Komponen Sidebar Navigasi Vertikal (diambil dari create.tsx)
 const VerticalStepper = ({ currentStep }: { currentStep: number }) => {
   const steps = [
-    {
-      number: 1,
-      title: "Informasi Surat",
-      description: "Detail dasar mengenai surat.",
-      icon: <ClipboardList className="h-6 w-6" />,
-    },
-    {
-      number: 2,
-      title: "Proses & Disposisi",
-      description: "Pengolah dan tujuan disposisi.",
-      icon: <BookOpen className="h-6 w-6" />,
-    },
-    {
-      number: 3,
-      title: "Tindakan & Acara",
-      description: "Jadwal acara atau tindak lanjut.",
-      icon: <Calendar className="h-6 w-6" />,
-    },
+    { number: 1, title: "Informasi Surat", description: "Detail dasar mengenai surat.", icon: <ClipboardList className="h-6 w-6" /> },
+    { number: 2, title: "Proses & Disposisi", description: "Pengolah dan tujuan disposisi.", icon: <BookOpen className="h-6 w-6" /> },
+    { number: 3, title: "Tindakan & Acara", description: "Jadwal acara atau tindak lanjut.", icon: <Calendar className="h-6 w-6" /> },
   ]
 
   return (
@@ -77,11 +62,9 @@ const VerticalStepper = ({ currentStep }: { currentStep: number }) => {
             <div className="flex flex-col items-center mr-4">
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 ${
-                  status === "active"
-                    ? "bg-amber-500 text-white shadow-lg" // Warna diubah
-                    : status === "complete"
-                    ? "bg-emerald-500 text-white"
-                    : "bg-gray-200 text-gray-500"
+                  status === "active" ? "bg-amber-500 text-white shadow-lg"
+                  : status === "complete" ? "bg-emerald-500 text-white"
+                  : "bg-gray-200 text-gray-500"
                 }`}
               >
                 {status === "complete" ? <CheckCircle className="h-7 w-7" /> : step.icon}
@@ -107,28 +90,28 @@ const formatDateForInput = (dateString: string | undefined | null, type: "date" 
   try {
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return ""
+    // Menggunakan toLocaleString untuk mendapatkan waktu lokal lalu memformatnya
+    const pad = (num: number) => num.toString().padStart(2, '0');
     if (type === "datetime-local") {
-      // Format: YYYY-MM-DDTHH:mm
-      return date.toISOString().slice(0, 16)
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
-    // Format: YYYY-MM-DD
-    return date.toISOString().split("T")[0]
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   } catch (error) {
+    console.error("Failed to format date:", error);
     return ""
   }
 }
 
 export default function EditIncomingLetterPage() {
   const router = useRouter()
-  const { id } = router.query as { id: string }
+  const { id } = router.query
   const { isAuthenticated, loading: authLoading } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [existingFileName, setExistingFileName] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState(1)
 
-  // Fetch data surat yang ada
-  const { data: letterData, isLoading: fetchingLetter } = useIncomingLetter(id)
+  const { data: letterData, isLoading: fetchingLetter } = useIncomingLetter(id as string)
   const updateLetterMutation = useUpdateIncomingLetter()
 
   const {
@@ -138,23 +121,23 @@ export default function EditIncomingLetterPage() {
     trigger,
     reset,
     formState: { errors },
-  } = useForm<NewCreateIncomingLetterRequest>({ mode: "onChange" })
+  } = useForm<FormData>({ mode: "onChange" })
 
   const dispositionMethod = watch("dispositionMethod")
   const isInvitation = watch("isInvitation")
   const needsFollowUp = watch("needsFollowUp")
 
-  // Otentikasi
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.replace("/auth/login")
     }
   }, [isAuthenticated, authLoading, router])
 
-  // Isi form dengan data yang ada
   useEffect(() => {
     if (letterData) {
-      const letter = letterData.data || letterData
+      // ✅ PENYEDERHANAAN DI SINI
+      // Tidak perlu lagi `letterData.data || letterData`
+      const letter = letterData;
       reset({
         receivedDate: formatDateForInput(letter.receivedDate, "datetime-local"),
         letterNumber: letter.letterNumber || "",
@@ -174,58 +157,57 @@ export default function EditIncomingLetterPage() {
         needsFollowUp: letter.needsFollowUp || false,
         followUpDeadline: formatDateForInput(letter.followUpDeadline, "date"),
       })
-      setExistingFileName(letter.fileName)
+      setExistingFileName(letter.fileName ?? null)
     }
   }, [letterData, reset])
 
-  const onSubmit = async (data: NewCreateIncomingLetterRequest) => {
-    try {
-      const formData = new FormData()
-
-      // Tambahkan semua data ke FormData
-      formData.append("receivedDate", new Date(data.receivedDate).toISOString())
-      formData.append("letterNumber", data.letterNumber)
-      if (data.letterDate) formData.append("letterDate", new Date(data.letterDate).toISOString())
-      if (data.letterNature) formData.append("letterNature", data.letterNature)
-      formData.append("subject", data.subject)
-      formData.append("sender", data.sender)
-      formData.append("recipient", data.recipient)
-      formData.append("processor", data.processor)
-      formData.append("dispositionMethod", data.dispositionMethod)
-      formData.append("dispositionTarget", data.dispositionTarget)
-
-      if (selectedFile) {
-        formData.append("file", selectedFile)
+  const onSubmit = (data: FormData) => {
+    const formData = new FormData()
+    
+    // Iterasi melalui data form dan tambahkan ke FormData
+    Object.entries(data).forEach(([key, value]) => {
+      // Hanya tambahkan field yang memiliki nilai (bukan null, undefined, atau string kosong)
+      if (value !== null && value !== undefined && value !== '') {
+        // Konversi tanggal ke format ISO String
+        if (['receivedDate', 'letterDate', 'eventDate', 'followUpDeadline'].includes(key)) {
+          formData.append(key, new Date(value as string).toISOString());
+        } else if (typeof value === 'boolean') {
+          formData.append(key, String(value)); // Konversi boolean ke string 'true'/'false'
+        } else if (key !== 'file') { // Jangan tambahkan field 'file' dari data form
+          formData.append(key, value as string);
+        }
       }
+    });
 
-      formData.append("isInvitation", String(data.isInvitation || false))
-      formData.append("needsFollowUp", String(data.needsFollowUp || false))
-
-      if (data.isInvitation && data.eventDate) {
-        formData.append("eventDate", new Date(data.eventDate).toISOString())
-        if (data.eventTime) formData.append("eventTime", data.eventTime)
-        if (data.eventLocation) formData.append("eventLocation", data.eventLocation)
-        if (data.eventNotes) formData.append("eventNotes", data.eventNotes)
-      }
-      if (data.needsFollowUp && data.followUpDeadline) {
-        formData.append("followUpDeadline", new Date(data.followUpDeadline).toISOString())
-      }
-
-      // PERBAIKAN: Mengganti properti 'data' menjadi 'formData'
-      await updateLetterMutation.mutateAsync({ id, formData: formData })
-      toast.success("Surat masuk berhasil diperbarui!")
-      router.push(`/letters/incoming/${id}`)
-    } catch (error) {
-      console.error("Failed to update letter:", error)
-      toast.error("Gagal memperbarui surat. Silakan coba lagi.")
+    if (selectedFile) {
+      formData.append("file", selectedFile)
     }
+
+    toast.promise(
+      updateLetterMutation.mutateAsync({ id: id as string, formData }),
+      {
+        loading: 'Menyimpan perubahan...',
+        success: () => {
+          router.push(`/letters/incoming/${id}`);
+          return 'Surat berhasil diperbarui!';
+        },
+        error: (err: any) => {
+          console.error("Gagal memperbarui surat:", err);
+          return err?.message || 'Gagal memperbarui surat. Silakan coba lagi.';
+        },
+      }
+    );
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        toast.error("Ukuran file terlalu besar. Maksimal 10MB.");
+        return;
+      }
       setSelectedFile(file)
-      setExistingFileName(null) // Sembunyikan nama file lama saat file baru dipilih
+      setExistingFileName(null)
     }
   }
 
@@ -236,14 +218,12 @@ export default function EditIncomingLetterPage() {
   }
 
   const handleNextStep = async () => {
-    let fieldsToValidate: FieldPath<NewCreateIncomingLetterRequest>[] = []
-    if (currentStep === 1) {
-      fieldsToValidate = ["receivedDate", "letterNumber", "subject", "sender", "recipient"]
-    } else if (currentStep === 2) {
-      fieldsToValidate = ["processor", "dispositionMethod", "dispositionTarget"]
-    }
-
-    const isValid = await trigger(fieldsToValidate)
+    const fieldsToValidate: FieldPath<FormData>[] = 
+      currentStep === 1 ? ["receivedDate", "letterNumber", "subject", "sender", "recipient"]
+      : currentStep === 2 ? ["processor", "dispositionMethod", "dispositionTarget"]
+      : []
+    
+    const isValid = await trigger(fieldsToValidate);
     if (isValid) {
       setCurrentStep((prev) => prev + 1)
     } else {
@@ -255,10 +235,12 @@ export default function EditIncomingLetterPage() {
 
   if (authLoading || fetchingLetter) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
-        <p className="ml-4">Memuat data surat...</p>
-      </div>
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+          <p className="ml-4">Memuat data surat...</p>
+        </div>
+      </Layout>
     )
   }
   if (!isAuthenticated) return null
@@ -273,9 +255,7 @@ export default function EditIncomingLetterPage() {
             <Link href={`/letters/incoming/${id}`} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </Link>
-            <div>
-              <h1 className="font-bold text-lg text-gray-800">Edit Surat Masuk</h1>
-            </div>
+            <div><h1 className="font-bold text-lg text-gray-800">Edit Surat Masuk</h1></div>
           </div>
           <VerticalStepper currentStep={currentStep} />
         </div>
@@ -283,17 +263,15 @@ export default function EditIncomingLetterPage() {
         <div className="w-full md:w-2/3 lg:w-3/4 p-6 md:p-10">
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
             <div className="flex-grow">
-              <h2 className="section-title text-amber-900">
-                Langkah {currentStep}:{" "}
-                {currentStep === 1 && "Informasi Utama Surat"}
-                {currentStep === 2 && "Proses & Disposisi"}
-                {currentStep === 3 && "Tindakan & Acara"}
+              <h2 className="text-xl font-bold text-amber-900">
+                Langkah {currentStep}: {currentStep === 1 ? "Informasi Utama Surat" : currentStep === 2 ? "Proses & Disposisi" : "Tindakan & Acara"}
               </h2>
-              <p className="section-description mb-8">Pastikan semua data yang ditandai dengan (*) terisi dengan benar.</p>
-
+              <p className="text-gray-600 mb-8">Pastikan semua data yang ditandai dengan (*) terisi dengan benar.</p>
+              
               {/* Step 1: Informasi Surat */}
               {currentStep === 1 && (
                 <div className="animate-fade-in space-y-6">
+                  {/* ... Konten form Step 1 (tidak ada perubahan) ... */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
                       <label className="form-label form-label-required">Tanggal Penerimaan Surat</label>
@@ -341,6 +319,7 @@ export default function EditIncomingLetterPage() {
               {/* Step 2: Proses & Disposisi */}
               {currentStep === 2 && (
                 <div className="animate-fade-in">
+                  {/* ... Konten form Step 2 (tidak ada perubahan) ... */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
                     <div className="space-y-6">
                        <div className="form-group">
@@ -418,6 +397,7 @@ export default function EditIncomingLetterPage() {
               {/* Step 3: Tindakan & Acara */}
               {currentStep === 3 && (
                  <div className="space-y-6 animate-fade-in">
+                    {/* ... Konten form Step 3 (tidak ada perubahan) ... */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label htmlFor="isInvitation" className={`flex flex-col space-y-1 cursor-pointer rounded-lg border-2 p-4 text-center transition-all duration-200 hover:shadow-md ${isInvitation ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-500' : 'border-gray-200 bg-white'}`}>
                             <input {...register("isInvitation")} type="checkbox" id="isInvitation" className="sr-only" />
@@ -433,7 +413,7 @@ export default function EditIncomingLetterPage() {
                         </label>
                     </div>
                     {isInvitation && (
-                        <div className="card p-6 border-amber-200 border animate-fade-in">
+                        <div className="bg-white rounded-lg border border-amber-200 p-6 animate-fade-in">
                         <h3 className="font-semibold text-gray-800 mb-4">Detail Acara</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="form-group"><label className="form-label form-label-required">Tanggal Acara</label><input {...register("eventDate", { required: isInvitation ? "Tanggal acara wajib diisi" : false })} type="date" className={`input ${inputFocusStyle} ${errors.eventDate ? "input-error" : ""}`} />{errors.eventDate && <p className="form-error">{errors.eventDate.message}</p>}</div>
@@ -444,9 +424,9 @@ export default function EditIncomingLetterPage() {
                         </div>
                     )}
                     {needsFollowUp && (
-                        <div className="card p-6 border-sky-200 border animate-fade-in">
+                        <div className="bg-white rounded-lg border border-sky-200 p-6 animate-fade-in">
                         <h3 className="font-semibold text-gray-800 mb-4">Detail Tindak Lanjut</h3>
-                        <div className="form-group"><label className="form-label form-label-required">Tanggal Tindak Lanjut</label><input {...register("followUpDeadline", { required: needsFollowUp ? "Tanggal tindak lanjut wajib diisi" : false })} type="date" className={`input ${inputFocusStyle} ${errors.followUpDeadline ? "input-error" : ""}`} />{errors.followUpDeadline && <p className="form-error">{errors.followUpDeadline.message}</p>}</div>
+                        <div className="form-group"><label className="form-label form-label-required">Batas Waktu Tindak Lanjut</label><input {...register("followUpDeadline", { required: needsFollowUp ? "Tanggal tindak lanjut wajib diisi" : false })} type="date" className={`input ${inputFocusStyle} ${errors.followUpDeadline ? "input-error" : ""}`} />{errors.followUpDeadline && <p className="form-error">{errors.followUpDeadline.message}</p>}</div>
                         </div>
                     )}
                 </div>
@@ -457,7 +437,7 @@ export default function EditIncomingLetterPage() {
               <div>{currentStep > 1 && (<button type="button" onClick={handlePrevStep} className="btn btn-secondary"><ArrowLeft className="h-4 w-4 mr-2" />Sebelumnya</button>)}</div>
               <div>
                 {currentStep < 3 && (<button type="button" onClick={handleNextStep} className="btn bg-amber-500 hover:bg-amber-600 text-white">Berikutnya<ChevronRight className="h-4 w-4 ml-2" /></button>)}
-                {currentStep === 3 && (<button type="submit" disabled={updateLetterMutation.isLoading} className="btn bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-70">{updateLetterMutation.isLoading ? (<><div className="loading-spinner h-4 w-4 mr-2"></div>Menyimpan...</>) : (<><Save className="h-4 w-4 mr-2" />Simpan Perubahan</>)}</button>)}
+                {currentStep === 3 && (<button type="submit" disabled={updateLetterMutation.isLoading} className="btn bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-70">{updateLetterMutation.isLoading ? (<><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Menyimpan...</>) : (<><Save className="h-4 w-4 mr-2" />Simpan Perubahan</>)}</button>)}
               </div>
             </div>
           </form>

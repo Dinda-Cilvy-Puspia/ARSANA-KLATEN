@@ -1,125 +1,162 @@
+// Mendefinisikan generator untuk Prisma Client
 generator client {
   provider = "prisma-client-js"
 }
 
+// Mendefinisikan koneksi ke database PostgreSQL
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// =====================================
+// MODEL-MODEL UTAMA
+// =====================================
+
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  password        String
-  name            String
-  role            Role             @default(STAFF)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  incomingLetters IncomingLetter[]
-  outgoingLetters OutgoingLetter[]
-   createdDispositions   Disposition[]    @relation("DispositionCreatedBy")
+  id                  String           @id @default(cuid())
+  name                String
+  email               String           @unique
+  password            String
+  role                Role             @default(STAFF)
+
+  // Relasi
+  incomingLetters     IncomingLetter[]
+  outgoingLetters     OutgoingLetter[]
+  createdDispositions Disposition[]    @relation("DispositionCreatedBy")
+
+  // Timestamps
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   @@map("users")
 }
 
 model IncomingLetter {
-  id            String        @id @default(cuid())
-  letterNumber  String        @unique
-  subject       String
-  sender        String
-  receivedDate  DateTime
-  fileName      String?
-  filePath      String?
-  isInvitation  Boolean       @default(false)
-  eventDate     DateTime?
-  eventLocation String?
-  eventTime     String?
-  eventNotes    String?
-  letterDate    DateTime?
-  letterNature  LetterNature  @default(BIASA)
-  note          String?
-  processor     String
-  recipient     String
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  dispositions  Disposition[]
+  id                         String             @id @default(cuid())
+  letterNumber               String             @unique
+  subject                    String
+  sender                     String
+  recipient                  String
+  processor                  String
+  receivedDate               DateTime
+  letterDate                 DateTime?
+  note                       String?
+  fileName                   String?
+  filePath                   String?
+  isInvitation               Boolean            @default(false)
+  needsFollowUp              Boolean            @default(false)
+  followUpDeadline           DateTime?
+  eventDate                  DateTime?
+  eventTime                  String?
+  eventLocation              String?
+  eventNotes                 String?
+  srikandiDispositionNumber  String?
+  dispositionTarget          String
+  overdueNotifiedAt          DateTime?          // ✅ TAMBAHKAN FIELD INI
+  letterNature               LetterNature       @default(BIASA)
+  dispositionMethod          DispositionMethod? /// Manual atau Srikandi
 
-  // 🔽 Tambahan baru
-  dispositionMethod      DispositionMethod? // Manual atau Srikandi
-  srikandiDispositionNumber String?          // Nomor disposisi Srikandi
-  needsFollowUp          Boolean @default(false)
-  followUpDeadline       DateTime?
+  // Relasi
+  userId                     String
+  user                       User               @relation(fields: [userId], references: [id])
+  dispositions               Disposition[]
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  // Timestamps
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
 
+  // Indeks untuk optimasi query
+  @@index([userId])
+  @@index([receivedDate])
+  @@index([letterNature])
   @@map("incoming_letters")
 }
 
 model OutgoingLetter {
-  id                 String        @id @default(cuid())
-  letterNumber       String        @unique
-  subject            String
-  recipient          String
-  fileName           String?
-  filePath           String?
-  isInvitation       Boolean       @default(false)
-  eventDate          DateTime?
-  eventLocation      String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  userId             String
-  classificationCode String?
-  createdDate        DateTime
-  eventNotes         String?
-  eventTime          String?
-  executionDate      DateTime?
-  letterDate         DateTime
-  letterNature       LetterNature  @default(BIASA)
-  note               String?
-  processor          String
-  securityClass      SecurityClass @default(BIASA)
-  sender             String
-  serialNumber       Int?
-  user               User          @relation(fields: [userId], references: [id])
+  id                         String             @id @default(cuid())
+  letterNumber               String             @unique
+  subject                    String
+  sender                     String
+  recipient                  String
+  processor                  String
+  createdDate                DateTime
+  letterDate                 DateTime
+  executionDate              DateTime?
+  note                       String?
+  fileName                   String?
+  filePath                   String?
+  isInvitation               Boolean            @default(false)
+  eventDate                  DateTime?
+  eventTime                  String?
+  eventLocation              String?
+  eventNotes                 String?
+  serialNumber               Int?
+  classificationCode         String?
+  srikandiDispositionNumber  String?
+  overdueNotifiedAt          DateTime?          // ✅ TAMBAHKAN FIELD INI
+  letterNature               LetterNature       @default(BIASA)
+  securityClass              SecurityClass      @default(BIASA)
+  dispositionMethod          DispositionMethod? /// Manual atau Srikandi
 
-  // 🔽 Tambahan baru
-  dispositionMethod      DispositionMethod? // Manual atau Srikandi
-  srikandiDispositionNumber String?          // Nomor disposisi jika Srikandi digunakan
+  // Relasi
+  userId                     String
+  user                       User               @relation(fields: [userId], references: [id])
 
+  // Timestamps
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+
+  // Indeks untuk optimasi query
+  @@index([userId])
+  @@index([createdDate])
   @@map("outgoing_letters")
 }
 
 model Disposition {
-  id               String          @id @default(cuid())
-  incomingLetterId String
-  dispositionTo    DispositionType
-  notes            String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  notes              String?
+  dispositionTo      DispositionType
 
-  incomingLetter   IncomingLetter  @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
+  // Relasi
+  incomingLetterId   String
+  incomingLetter     IncomingLetter  @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
+  createdById        String?
+  createdBy          User?           @relation("DispositionCreatedBy", fields: [createdById], references: [id])
 
-  // ✅ Tambahkan relasi dua arah dengan User
-  createdById      String?
-  createdBy        User? @relation("DispositionCreatedBy", fields: [createdById], references: [id])
+  // Timestamps
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
+  // Indeks untuk optimasi query
+  @@index([incomingLetterId])
+  @@index([createdById])
   @@map("dispositions")
 }
-
 
 model Notification {
   id        String           @id @default(cuid())
   title     String
   message   String
-  type      NotificationType @default(INFO)
   isRead    Boolean          @default(false)
-  userId    String?
+  type      NotificationType @default(INFO)
+
+  // Relasi
+  userId    String?          // Bisa null untuk notifikasi global
+
+  // Timestamps
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
+  // Indeks untuk optimasi query
+  @@index([userId])
   @@map("notifications")
 }
+
+
+// =====================================
+// ENUMERASI
+// =====================================
 
 enum Role {
   ADMIN
