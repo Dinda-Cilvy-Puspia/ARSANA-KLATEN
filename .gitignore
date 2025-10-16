@@ -25,6 +25,8 @@ out/
 logs/
 *.log
 
+.md
+
 # Runtime data
 pids/
 *.pid

@@ -12,14 +12,14 @@ import {
   MapPin,
   Clock,
   AlertTriangle,
-  Info
+  Info,
+  ClipboardCheck // [DITAMBAHKAN] Ikon baru
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIncomingLetter, useDeleteIncomingLetter } from '@/hooks/useApi';
 import Layout from '@/components/Layout/Layout';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import Image from 'next/image';
 
 import FileDownload from '@/components/FileDownload';
 import DispositionManager from '@/components/DispositionManager';
@@ -147,6 +147,12 @@ export default function IncomingLetterDetailPage() {
                     Undangan
                   </span>
                 )}
+                {/* [DITAMBAHKAN] Badge untuk Tindak Lanjut */}
+                {letter.needsFollowUp && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                    Perlu Tindak Lanjut
+                  </span>
+                )}
               </div>
               <h1 className="text-3xl font-bold text-white mb-2 leading-tight">
                 {letter.subject}
@@ -187,26 +193,13 @@ export default function IncomingLetterDetailPage() {
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DetailItem icon={User} label="Pengirim">
-                    {letter.sender}
-                  </DetailItem>
-                  
-                  <DetailItem icon={User} label="Penerima">
-                    {letter.recipient}
-                  </DetailItem>
-                  
-                  <DetailItem icon={User} label="Pengolah">
-                    {letter.processor}
-                  </DetailItem>
-                  
-                  <DetailItem icon={Clock} label="Tanggal Diterima">
-                    {formatDate(letter.receivedDate)}
-                  </DetailItem>
+                  <DetailItem icon={User} label="Pengirim">{letter.sender}</DetailItem>
+                  <DetailItem icon={User} label="Penerima">{letter.recipient}</DetailItem>
+                  <DetailItem icon={User} label="Pengolah">{letter.processor}</DetailItem>
+                  <DetailItem icon={Clock} label="Tanggal Diterima">{formatDate(letter.receivedDate)}</DetailItem>
                   
                   {letter.letterDate && (
-                    <DetailItem icon={Clock} label="Tanggal Surat">
-                      {formatDate(letter.letterDate)}
-                    </DetailItem>
+                    <DetailItem icon={Clock} label="Tanggal Surat">{formatDate(letter.letterDate)}</DetailItem>
                   )}
                   
                   <DetailItem icon={Tag} label="Sifat Surat">
@@ -214,6 +207,20 @@ export default function IncomingLetterDetailPage() {
                       {natureLabels[letter.letterNature as keyof typeof natureLabels]}
                     </span>
                   </DetailItem>
+
+                  {/* [DITAMBAHKAN] Detail Metode Disposisi */}
+                  {letter.dispositionMethod && (
+                    <DetailItem icon={ClipboardCheck} label="Metode Disposisi">
+                      <span className="font-semibold capitalize">{letter.dispositionMethod.toLowerCase()}</span>
+                    </DetailItem>
+                  )}
+
+                  {/* [DITAMBAHKAN] Detail Nomor Disposisi Srikandi */}
+                  {letter.srikandiDispositionNumber && (
+                    <DetailItem icon={FileText} label="No. Disposisi Srikandi">
+                      {letter.srikandiDispositionNumber}
+                    </DetailItem>
+                  )}
                 </div>
                 
                 {letter.note && (
@@ -241,23 +248,9 @@ export default function IncomingLetterDetailPage() {
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {letter.eventDate && (
-                      <DetailItem icon={Calendar} label="Tanggal Acara">
-                        {formatDate(letter.eventDate)}
-                      </DetailItem>
-                    )}
-                    
-                    {letter.eventTime && (
-                      <DetailItem icon={Clock} label="Waktu Acara">
-                        {letter.eventTime}
-                      </DetailItem>
-                    )}
-                    
-                    {letter.eventLocation && (
-                      <DetailItem icon={MapPin} label="Lokasi Acara">
-                        {letter.eventLocation}
-                      </DetailItem>
-                    )}
+                    {letter.eventDate && (<DetailItem icon={Calendar} label="Tanggal Acara">{formatDate(letter.eventDate)}</DetailItem>)}
+                    {letter.eventTime && (<DetailItem icon={Clock} label="Waktu Acara">{letter.eventTime}</DetailItem>)}
+                    {letter.eventLocation && (<DetailItem icon={MapPin} label="Lokasi Acara">{letter.eventLocation}</DetailItem>)}
                   </div>
                   
                   {letter.eventNotes && (
@@ -270,6 +263,25 @@ export default function IncomingLetterDetailPage() {
                         {letter.eventNotes}
                       </div>
                     </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* [DITAMBAHKAN] Blok Informasi Tindak Lanjut */}
+            {letter.needsFollowUp && (
+              <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-200">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                    Informasi Tindak Lanjut
+                  </h2>
+                </div>
+                <div className="p-6">
+                  {letter.followUpDeadline && (
+                    <DetailItem icon={Calendar} label="Deadline Tindak Lanjut">
+                      <span className="font-bold text-orange-700">{formatDate(letter.followUpDeadline)}</span>
+                    </DetailItem>
                   )}
                 </div>
               </div>
@@ -297,7 +309,6 @@ export default function IncomingLetterDetailPage() {
                 <FileDownload 
                   letterId={letter.id}
                   letterType="incoming"
-                  fileName={letter.fileName}
                 />
               </div>
             </div>

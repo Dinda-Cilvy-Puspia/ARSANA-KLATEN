@@ -62,6 +62,7 @@ const toBoolean = (val: unknown) => {
 const incomingLetterSchema = z.object({
   // Basic letter information
   letterNumber: z.string()
+    .trim()
     .min(3, 'Nomor surat minimal 3 karakter')
     .max(50, 'Nomor surat maksimal 50 karakter')
     .regex(/^[A-Za-z0-9\-\/\.]+$/, 'Nomor surat hanya boleh berisi huruf, angka, tanda hubung, garis miring, dan titik'),

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import apiClient from '@/lib/api'; 
 import { useFileInfo } from '@/hooks/useApi';
-import { Download, Eye, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { Download, Eye, AlertCircle, Loader2 } from 'lucide-react';
 import { filesize } from 'filesize';
 import { toast } from 'react-hot-toast';
 
+// [DISARANKAN] Jadikan letterId sebagai prop wajib
 interface FileDownloadProps {
-  letterId?: string;
+  letterId: string;
   letterType: 'incoming' | 'outgoing';
 }
 
@@ -23,24 +24,15 @@ const FileDownload: React.FC<FileDownloadProps> = ({ letterId, letterType }) => 
     try {
       const response = await apiClient.downloadFile(letterType, letterId);
       
-      
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = 'downloaded-file'; // Fallback
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1];
-        }
-      }
-      
-      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filename);
+
+      // [DIUBAH] Langsung gunakan nama file dari hook useFileInfo
+      link.setAttribute('download', data?.fileInfo?.fileName || 'downloaded-file');
+      
       document.body.appendChild(link);
       link.click();
-
       
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -49,6 +41,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ letterId, letterType }) => 
       toast.success('File berhasil di-download!');
 
     } catch (error) {
+      // [DIUBAH] Tambahkan toast.dismiss() saat terjadi error
       toast.dismiss();
       toast.error('Gagal men-download file.');
       console.error("Download error:", error);
