@@ -73,8 +73,8 @@ export default function Layout({ children }: LayoutProps) {
                   href={item.href}
                   className={`group flex items-center px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#12A168] text-white shadow-md' // --- [REDESIGN] Style aktif
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white' // --- [REDESIGN] Style non-aktif
+                      ? 'bg-[#12A168] text-white shadow-md' 
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white' 
                   }`}
                   onClick={() => sidebarOpen && setSidebarOpen(false)}
                 >
@@ -103,13 +103,13 @@ export default function Layout({ children }: LayoutProps) {
           )}
         </ul>
       </nav>
-      {/* --- [REDESIGN] Hapus user profile dari bottom sidebar untuk mobile, karena akan ada di top bar --- */}
+      {/* Tombol tutup sidebar untuk mobile */}
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50"> {/* --- [REDESIGN] Latar belakang konten lebih cerah --- */}
-      {/* Mobile sidebar */}
+    <div className="min-h-screen bg-slate-50"> {}
+      {}
       <Transition.Root show={sidebarOpen} as={Fragment}>
         <div className="fixed inset-0 z-50 lg:hidden">
           <Transition.Child

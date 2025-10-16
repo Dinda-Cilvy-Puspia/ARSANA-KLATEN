@@ -1,7 +1,5 @@
-// Lokasi: src/components/FileDownload.tsx
-
 import React, { useState } from 'react';
-import apiClient from '@/lib/api'; // Impor apiClient
+import apiClient from '@/lib/api'; 
 import { useFileInfo } from '@/hooks/useApi';
 import { Download, Eye, AlertCircle, Loader2, FileText } from 'lucide-react';
 import { filesize } from 'filesize';
@@ -25,7 +23,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ letterId, letterType }) => 
     try {
       const response = await apiClient.downloadFile(letterType, letterId);
       
-      // Ambil nama file dari header Content-Disposition
+      
       const contentDisposition = response.headers['content-disposition'];
       let filename = 'downloaded-file'; // Fallback
       if (contentDisposition) {
@@ -35,7 +33,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ letterId, letterType }) => 
         }
       }
       
-      // Buat URL sementara dari blob dan picu download
+      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -43,7 +41,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ letterId, letterType }) => 
       document.body.appendChild(link);
       link.click();
 
-      // Hapus link dan URL sementara
+      
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
       

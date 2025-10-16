@@ -261,7 +261,7 @@ export default function IncomingLettersPage() {
                             {(user?.role === 'ADMIN' || letter.userId === user?.id) && (
                               <>
                                 <Link
-                                  href={`/letters/incoming/edit/${letter.id}`}
+                                  href={`/letters/incoming/${letter.id}/edit`}
                                   className="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-all"
                                   title="Edit"
                                 >

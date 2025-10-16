@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 
-// Import routes
+
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import incomingLetterRoutes from './routes/incomingLetter.routes';
@@ -16,21 +16,21 @@ import notificationRoutes from './routes/notification.routes';
 import calendarRoutes from './routes/calendar.routes';
 import fileRoutes from './routes/file.routes';
 
-// Import middleware
+
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import { requestLogger, detailedRequestLogger } from './middleware/requestLogger';
 
-// Import services
+
 import { startCronJobs } from './services/cronService';
 
-// Import logging
+
 import logger, { devLogger } from './utils/logger';
 
 const app: Express = express();
 const prisma = new PrismaClient();
 
-// Create necessary directories
+
 const logsDir = path.join(__dirname, '../logs');
 const uploadsDir = path.join(__dirname, '../uploads');
 
@@ -44,17 +44,17 @@ if (!fs.existsSync(uploadsDir)) {
   devLogger.info('Created uploads directory');
 }
 
-// Request logging middleware (before other middleware)
+
 const loggerMiddlewares = requestLogger();
 loggerMiddlewares.forEach(middleware => app.use(middleware));
 
-// Detailed request logging for debugging (if enabled)
+
 app.use(detailedRequestLogger);
 
-// Security middleware
+
 app.use(helmet());
 
-// Rate limiting
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
@@ -78,20 +78,18 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// --- PERBAIKAN DI SINI ---
-// CORS configuration
+
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['http://localhost:3000'] // Ganti dengan domain frontend Anda di produksi
+    ? ['http://localhost:3000'] // domain frontend produksi
     : ['http://localhost:3000'],
   credentials: true,
-  exposedHeaders: ['Content-Disposition'], // <-- BARIS INI DITAMBAHKAN
+  exposedHeaders: ['Content-Disposition'], 
 };
 
 app.use(cors(corsOptions));
 
 
-// Body parsing middleware
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf, encoding) => {
@@ -110,13 +108,13 @@ app.use(express.urlencoded({
   }
 }));
 
-// Static files for uploaded documents with logging
+
 app.use('/uploads', (req, res, next) => {
   devLogger.debug(`Static file request: ${req.path}`);
   next();
 }, express.static(path.join(__dirname, '..', 'uploads')));
 
-// API Routes
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/incoming-letters', incomingLetterRoutes);
@@ -126,7 +124,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/files', fileRoutes);
 
-// Health check endpoint
+
 app.get('/api/health', (req, res) => {
   const healthData = {
     status: 'OK',
@@ -141,15 +139,15 @@ app.get('/api/health', (req, res) => {
   res.json(healthData);
 });
 
-// Error handling middleware (must be last)
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Start cron jobs
+
 startCronJobs();
 logger.info('Cron jobs started');
 
-// Graceful shutdown
+
 const gracefulShutdown = async (signal: string) => {
   logger.info(`${signal} received, shutting down gracefully...`);
   
@@ -171,6 +169,17 @@ const PORT = process.env.PORT || 5000;
 
 const listEndpoints = require('express-list-endpoints');
 console.table(listEndpoints(app));
+
+async function testConnection() {
+  try {
+    const result = await prisma.$queryRaw`SELECT NOW()`;
+    console.log("✅ Connected to Supabase:", result);
+  } catch (err) {
+    console.error("❌ Connection failed:", err);
+  }
+}
+
+testConnection();
 
 app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);

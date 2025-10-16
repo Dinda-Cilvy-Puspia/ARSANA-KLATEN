@@ -1,5 +1,3 @@
-// Lokasi: src/lib/api.ts
-
 import axios, { AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-hot-toast';
@@ -19,16 +17,13 @@ class ApiClient {
       },
     });
 
-    // Request interceptor untuk menambahkan token auth
     this.client.interceptors.request.use(
       (config) => {
         const token = Cookies.get('authToken');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        // --- PERBAIKAN BUG ---
-        // Hapus header Content-Type default jika data adalah FormData
-        // Browser akan mengaturnya secara otomatis dengan boundary yang benar
+        
         if (config.data instanceof FormData) {
           delete config.headers['Content-Type'];
         }
@@ -39,7 +34,7 @@ class ApiClient {
       }
     );
 
-    // Response interceptor untuk error handling
+    
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
@@ -138,26 +133,20 @@ class ApiClient {
     return response.data;
   }
 
-  // --- FUNGSI BARU UNTUK DISPOSISI ---
-  // Dispositions methods
+
   async getDispositionsByLetter(letterId: string) {
     // Menggunakan URL yang benar sesuai rute backend
     const response = await this.client.get(`/dispositions/letter/${letterId}`);
     return response.data;
   }
-  // Anda bisa menambahkan create/update/delete disposition di sini jika perlu
 
-  // --- FUNGSI BARU UNTUK FILE INFO ---
-  // File methods
   async getFileInfo(id: string, type: 'incoming' | 'outgoing') {
     const response = await this.client.get(`/files/${type}/${id}/info`);
     return response.data;
   }
-
-    // --- TAMBAHKAN DUA FUNGSI BARU INI UNTUK FILE ---
+   
   async downloadFile(type: 'incoming' | 'outgoing', id: string) {
-    // Meminta data sebagai 'blob' dan mengembalikan seluruh respons
-    // agar kita bisa mengakses header dan data file-nya.
+    
     return this.client.get(`/files/${type}/${id}`, {
       responseType: 'blob',
     });
@@ -169,7 +158,6 @@ class ApiClient {
     });
   }
 
-  // Notifications methods
   async getNotifications(params?: { page?: number; limit?: number; unreadOnly?: boolean; }) {
     const response = await this.client.get('/notifications', { params });
     return response.data;
