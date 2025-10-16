@@ -64,7 +64,7 @@ const incomingLetterSchema = z.object({
   letterNumber: z.string()
     .min(3, 'Nomor surat minimal 3 karakter')
     .max(50, 'Nomor surat maksimal 50 karakter')
-    .regex(/^[A-Za-z0-9\-\/]+$/, 'Nomor surat hanya boleh berisi huruf, angka, tanda hubung, dan garis miring'),
+    .regex(/^[A-Za-z0-9\-\/\.]+$/, 'Nomor surat hanya boleh berisi huruf, angka, tanda hubung, garis miring, dan titik'),
   letterDate: z.string().datetime('Format tanggal surat tidak valid').optional().nullable(),
   letterNature: z.enum(['BIASA', 'TERBATAS', 'RAHASIA', 'SANGAT_RAHASIA', 'PENTING'], {
     errorMap: () => ({ message: 'Sifat surat tidak valid' })
@@ -144,7 +144,7 @@ const updateIncomingLetterSchema = z.object({
   letterNumber: z.string()
     .min(3)
     .max(50)
-    .regex(/^[A-Za-z0-9\-\/]+$/)
+    .regex(/^[A-Za-z0-9\-\/\.]+$/)
     .optional(),
   letterDate: z.string()
     .datetime('Format tanggal surat tidak valid')
@@ -179,6 +179,15 @@ const updateIncomingLetterSchema = z.object({
   srikandiDispositionNumber: z.string().max(100).optional().nullable()
 });
 
+const dispositionSchema = z.object({
+  dispositionTo: z.enum([
+    'UMPEG', 'PERENCANAAN', 'KAUR_KEUANGAN', 'KABID', 
+    'BIDANG1', 'BIDANG2', 'BIDANG3', 'BIDANG4', 'BIDANG5'
+  ]),
+  notes: z.string().max(1000, 'Catatan disposisi maksimal 1000 karakter').optional().nullable()
+});
+
+
 // =====================================
 // Controller Functions
 // =====================================
@@ -187,39 +196,13 @@ export const createIncomingLetter = async (req: AuthenticatedRequest, res: Respo
     // Validate input data
     const data = incomingLetterSchema.parse(req.body);
 
-    // Check for duplicate letter number
-    const existingLetter = await prisma.incomingLetter.findFirst({
-      where: { letterNumber: data.letterNumber }
-    });
-
-    if (existingLetter) {
-      res.status(400).json({
-        error: 'Nomor surat sudah digunakan',
-        details: [{ field: 'letterNumber', message: 'Nomor surat sudah ada dalam sistem' }]
-      });
-      return;
-    }
-
     // Prepare letter data
     const letterData = {
-      letterNumber: data.letterNumber,
+      ...data,
       letterDate: data.letterDate ? new Date(data.letterDate) : null,
-      letterNature: data.letterNature || 'BIASA',
-      subject: data.subject,
-      sender: data.sender,
-      recipient: data.recipient,
-      processor: data.processor,
-      note: data.note || null,
       receivedDate: new Date(data.receivedDate),
-      isInvitation: data.isInvitation || false,
       eventDate: data.eventDate ? new Date(data.eventDate) : null,
-      eventTime: data.eventTime || null,
-      eventLocation: data.eventLocation || null,
-      eventNotes: data.eventNotes || null,
-      needsFollowUp: data.needsFollowUp || false,
       followUpDeadline: data.followUpDeadline ? new Date(data.followUpDeadline) : null,
-      dispositionMethod: data.dispositionMethod || null,
-      srikandiDispositionNumber: data.srikandiDispositionNumber || null,
       userId: req.user!.userId,
       fileName: req.file?.originalname || null,
       filePath: req.file?.path || null
@@ -338,19 +321,13 @@ export const updateIncomingLetter = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
-// ... kode sebelumnya tetap sama sampai fungsi updateIncomingLetter ...
-
-// =====================================
-// Additional Controller Functions
-// =====================================
-
 export const getIncomingLetters = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
     const letterNature = req.query.letterNature as string;
-    const needsFollowUp = req.query.needsFollowUp === 'true'; // Tambahan filter baru
+    const needsFollowUp = req.query.needsFollowUp === 'true';
     
     const skip = (page - 1) * limit;
     
@@ -510,6 +487,60 @@ export const deleteIncomingLetter = async (req: AuthenticatedRequest, res: Respo
 };
 
 // =====================================
+// Disposition Controller Functions
+// =====================================
+
+export const createDispositionForLetter = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { letterId } = req.params;
+    const data = dispositionSchema.parse(req.body);
+
+    // Check if letter exists
+    const letter = await prisma.incomingLetter.findUnique({ where: { id: letterId } });
+    if (!letter) {
+      res.status(404).json({ error: 'Surat tidak ditemukan' });
+      return;
+    }
+
+    const disposition = await prisma.disposition.create({
+      data: {
+        incomingLetterId: letterId,
+        dispositionTo: data.dispositionTo,
+        notes: data.notes,
+        createdById: req.user!.userId,
+      },
+      include: {
+        createdBy: { select: { id: true, name: true } }
+      }
+    });
+
+    res.status(201).json({ message: 'Disposisi berhasil ditambahkan', data: disposition });
+
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+export const getDispositionsForLetter = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { letterId } = req.params;
+        const dispositions = await prisma.disposition.findMany({
+            where: { incomingLetterId: letterId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                createdBy: { select: { id: true, name: true } }
+            }
+        });
+
+        res.json(dispositions);
+
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+
+// =====================================
 // Additional Utility Functions
 // =====================================
 
@@ -630,4 +661,3 @@ const handleError = (error: any, res: Response) => {
     message: 'Silakan coba lagi nanti'
   });
 };
-
