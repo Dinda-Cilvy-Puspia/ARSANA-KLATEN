@@ -4,34 +4,42 @@ import Link from 'next/link';
 import { 
   Plus, 
   Search, 
-  Filter, 
   Edit, 
   Trash2, 
-  Download, 
   Eye,
   Calendar,
-  FileText
+  FileText,
+  User,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIncomingLetters, useDeleteIncomingLetter } from '@/hooks/useApi';
 import Layout from '@/components/Layout/Layout';
 import { formatDate } from '@/lib/utils';
-import { IncomingLetter, LetterCategory } from '@/types';
+import { IncomingLetter } from '@/types';
+import { toast } from 'react-hot-toast'; // PERBAIKAN: Menambahkan impor yang hilang
 
-const natureColors = {
-  BIASA: 'bg-gray-100 text-gray-800',
-  TERBATAS: 'bg-yellow-100 text-yellow-800',
-  RAHASIA: 'bg-red-100 text-red-800',
-  SANGAT_RAHASIA: 'bg-red-200 text-red-900',
-  PENTING: 'bg-orange-100 text-orange-800',
-};
-
-const natureLabels = {
-  BIASA: 'Biasa',
-  TERBATAS: 'Terbatas',
-  RAHASIA: 'Rahasia',
-  SANGAT_RAHASIA: 'Sangat Rahasia',
-  PENTING: 'Penting',
+const natureStyles = {
+  BIASA: {
+    label: "Biasa",
+    className: "border-gray-300 bg-gray-100 text-gray-800",
+  },
+  PENTING: {
+    label: "Penting",
+    className: "border-orange-300 bg-orange-100 text-orange-800",
+  },
+  TERBATAS: {
+    label: "Terbatas",
+    className: "border-yellow-300 bg-yellow-100 text-yellow-800",
+  },
+  RAHASIA: {
+    label: "Rahasia",
+    className: "border-red-300 bg-red-100 text-red-800",
+  },
+  SANGAT_RAHASIA: {
+    label: "Sangat Rahasia",
+    className: "border-red-400 bg-red-200 text-red-900 font-bold",
+  },
 };
 
 export default function IncomingLettersPage() {
@@ -44,7 +52,7 @@ export default function IncomingLettersPage() {
 
   const { data, isLoading, error } = useIncomingLetters({
     page: currentPage,
-    limit: 10,
+    limit: 9, 
     search: searchQuery || undefined,
     category: categoryFilter || undefined,
   });
@@ -62,36 +70,38 @@ export default function IncomingLettersPage() {
     setCurrentPage(1);
   };
 
+  const stopPropagation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   const handleDelete = async (id: string) => {
     try {
       await deleteLetterMutation.mutateAsync(id);
       setShowConfirmDelete(null);
+      toast.success('Surat berhasil dihapus.');
     } catch (error) {
+      toast.error('Gagal menghapus surat.');
       console.error('Failed to delete letter:', error);
     }
   };
 
-  const handleDownload = (letter: IncomingLetter) => {
+  const handleDownload = (letter: IncomingLetter, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (letter.filePath) {
-      const baseURL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-      window.open(`${baseURL}/uploads/${letter.fileName}`, '_blank');
+      const baseURL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      window.open(`${baseURL}/${letter.filePath}`, '_blank');
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="mt-4 text-sm text-gray-600">Memuat data...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   const letters = data?.letters || [];
   const pagination = data?.pagination;
@@ -100,15 +110,15 @@ export default function IncomingLettersPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl shadow-lg p-8">
-          <div className="flex items-center justify-between">
-            <div className="text-white">
-              <h1 className="text-3xl font-bold mb-2">Surat Masuk</h1>
-              <p className="text-emerald-100">Kelola dan pantau surat masuk organisasi Anda</p>
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl shadow-lg p-8 text-white">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-1">Surat Masuk</h1>
+              <p className="text-emerald-100">Kelola dan pantau surat masuk organisasi Anda.</p>
             </div>
             <Link
               href="/letters/incoming/create"
-              className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-xl hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+              className="flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-transform hover:scale-105 shadow-lg font-semibold"
             >
               <Plus className="h-5 w-5" />
               <span>Tambah Surat</span>
@@ -117,159 +127,107 @@ export default function IncomingLettersPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari berdasarkan nomor surat, subjek, atau pengirim..."
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50 transition-all"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+        <div className="bg-white rounded-2xl shadow-md p-4 border border-gray-100">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-grow w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari berdasarkan nomor, subjek, atau pengirim..."
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50 transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-
-            <div className="sm:w-56">
-              <select
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50 transition-all"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">Semua Kategori</option>
-                <option value="BIASA">Biasa</option>
-                <option value="TERBATAS">Terbatas</option>
-                <option value="RAHASIA">Rahasia</option>
-                <option value="SANGAT_RAHASIA">Sangat Rahasia</option>
-                <option value="PENTING">Penting</option>
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              className="flex items-center justify-center px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+            <select
+              className="w-full sm:w-48 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50 transition-all"
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
             >
-              <Search className="h-5 w-5 mr-2" />
-              Cari
-            </button>
+              <option value="">Semua Sifat</option>
+              {Object.entries(natureStyles).map(([key, value]) => (
+                <option key={key} value={key}>{value.label}</option>
+              ))}
+            </select>
           </form>
         </div>
 
-        {/* Letters Table */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+        {/* Letters Grid */}
+        <div>
           {isLoading ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Memuat data surat...</p>
+            <div className="text-center p-10">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Memuat data surat...</p>
             </div>
           ) : letters.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gradient-to-r from-emerald-50 to-teal-50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Informasi Surat
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Pengirim
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Kategori
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Tanggal
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        File
-                      </th>
-                      <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {letters.map((letter: IncomingLetter) => {
+                const nature = natureStyles[letter.letterNature as keyof typeof natureStyles] || natureStyles.BIASA;
+                return (
+                  <Link href={`/letters/incoming/${letter.id}`} key={letter.id} className="block group">
+                    <div className="bg-white rounded-2xl shadow-md border border-gray-100 hover:shadow-xl hover:border-emerald-500 transition-all duration-300 flex flex-col h-full">
+                      {/* Card Header */}
+                      <div className="p-5 border-b border-gray-200">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-emerald-700 truncate">{letter.letterNumber}</p>
+                          <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${nature.className}`}>
+                            {nature.label}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mt-2 truncate group-hover:text-emerald-600 transition-colors">
+                          {letter.subject}
+                        </h3>
+                      </div>
+                      
+                      {/* Card Body */}
+                      <div className="p-5 flex-grow space-y-3 text-sm">
+                        <div className="flex items-center gap-3 text-gray-600">
+                          <User className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                          <span className="font-medium">{letter.sender}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-gray-600">
+                          <Clock className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                          <span>Diterima: {formatDate(letter.receivedDate)}</span>
+                        </div>
+                        {/* PERBAIKAN: Menambahkan pengecekan `letter.eventDate` */}
+                        {letter.isInvitation && letter.eventDate && (
+                          <div className="flex items-center gap-3 text-purple-700">
+                            <Calendar className="h-4 w-4 flex-shrink-0 text-purple-400" />
+                            <span className="font-semibold">Acara: {formatDate(letter.eventDate)}</span>
+                          </div>
+                        )}
+                      </div>
 
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {letters.map((letter: IncomingLetter) => (
-                      <tr key={letter.id} className="hover:bg-emerald-50/50 transition-colors duration-150">
-                        <td className="px-6 py-4">
+                      {/* Card Footer */}
+                      <div className="p-4 bg-gray-50/70 rounded-b-2xl mt-auto">
+                        <div className="flex items-center justify-between">
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 mb-1">
-                              {letter.letterNumber}
-                            </div>
-                            <div className="text-sm text-gray-600 line-clamp-2">
-                              {letter.subject}
-                            </div>
-                            {letter.isInvitation && letter.eventDate && (
-                              <div className="flex items-center gap-1 text-xs text-purple-600 mt-2 bg-purple-50 px-2 py-1 rounded-md inline-flex">
-                                <Calendar className="h-3 w-3" />
-                                <span className="font-medium">Acara: {formatDate(letter.eventDate)}</span>
-                              </div>
+                            {letter.fileName ? (
+                              <button
+                                onClick={(e) => handleDownload(letter, e)}
+                                className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-800 font-medium"
+                              >
+                                <FileText className="h-4 w-4" />
+                                <span>Lihat File</span>
+                              </button>
+                            ) : (
+                              <span className="text-sm text-gray-400">Tidak ada file</span>
                             )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                          {letter.sender}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                                natureColors[
-                                  letter.letterNature as keyof typeof natureColors
-                                ] || natureColors.BIASA
-                              }`}
-                            >
-                              {natureLabels[
-                                letter.letterNature as keyof typeof natureLabels
-                              ] || letter.letterNature}
-                            </span>
-                            {letter.isInvitation && (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-100 text-purple-800">
-                                Undangan
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {formatDate(letter.receivedDate)}
-                        </td>
-                        <td className="px-6 py-4">
-                          {letter.fileName ? (
-                            <button
-                              onClick={() => handleDownload(letter)}
-                              className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700 font-medium hover:underline"
-                            >
-                              <FileText className="h-4 w-4" />
-                              <span className="line-clamp-1">{letter.fileName}</span>
-                            </button>
-                          ) : (
-                            <span className="text-sm text-gray-400">Tidak ada file</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex justify-end gap-2">
-                            <Link
-                              href={`/letters/incoming/${letter.id}`}
-                              className="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                              title="Lihat Detail"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
+                          
+                          <div className="flex items-center gap-1" onClick={stopPropagation}>
                             {(user?.role === 'ADMIN' || letter.userId === user?.id) && (
                               <>
                                 <Link
                                   href={`/letters/incoming/${letter.id}/edit`}
-                                  className="p-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-all"
+                                  className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
                                   title="Edit"
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Link>
                                 <button
                                   onClick={() => setShowConfirmDelete(letter.id)}
-                                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                   title="Hapus"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -277,61 +235,50 @@ export default function IncomingLettersPage() {
                               </>
                             )}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {pagination && pagination.pages > 1 && (
-                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
-                      Menampilkan <span className="font-semibold">{((pagination.current - 1) * pagination.limit) + 1}</span> sampai{' '}
-                      <span className="font-semibold">{Math.min(pagination.current * pagination.limit, pagination.total)}</span> dari{' '}
-                      <span className="font-semibold">{pagination.total}</span> hasil
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage <= 1}
-                        className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      >
-                        Sebelumnya
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
-                        disabled={currentPage >= pagination.pages}
-                        className="px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      >
-                        Berikutnya
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+                  </Link>
+                );
+              })}
+            </div>
           ) : (
-            <div className="p-12 text-center">
+            <div className="text-center p-12 bg-white rounded-2xl shadow-md border border-gray-100">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-gray-400" />
+                <Search className="h-8 w-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak ada surat masuk</h3>
-              <p className="text-gray-600 mb-6">
-                Mulai dengan menambahkan surat masuk pertama Anda.
-              </p>
-              <Link
-                href="/letters/incoming/create"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
-              >
-                <Plus className="h-5 w-5" />
-                Tambah Surat Masuk
-              </Link>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Surat Tidak Ditemukan</h3>
+              <p className="text-gray-600">Tidak ada surat yang cocok dengan kriteria pencarian Anda.</p>
             </div>
           )}
         </div>
+        
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="bg-white rounded-2xl shadow-md p-4 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-700">
+                Halaman <span className="font-semibold">{pagination.current}</span> dari <span className="font-semibold">{pagination.pages}</span>
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
+                  disabled={currentPage >= pagination.pages}
+                  className="px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Delete Confirmation Modal */}
         {showConfirmDelete && (
@@ -342,9 +289,7 @@ export default function IncomingLettersPage() {
                   <Trash2 className="h-6 w-6 text-red-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    Konfirmasi Hapus
-                  </h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Konfirmasi Hapus</h3>
                   <p className="text-gray-600 text-sm">
                     Apakah Anda yakin ingin menghapus surat ini? Tindakan ini tidak dapat dibatalkan.
                   </p>
