@@ -1,11 +1,11 @@
 // index.tsx
 
-import React, { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/router"
 import { useAuth } from "@/hooks/useAuth"
 import { useIncomingLetters, useOutgoingLetters, useUpcomingEvents } from "@/hooks/useApi"
 import Layout from "@/components/Layout/Layout"
-import { FileText, Send, Calendar, ArrowDownCircle, ArrowUpCircle, Plus, BookOpen } from "lucide-react"
+import { FileText, Send, Calendar, ArrowDownCircle, ArrowUpCircle, Plus, BookOpen, Clock } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
 import type { IncomingLetter, OutgoingLetter } from "@/types"; // <-- Jangan lupa import
@@ -34,6 +34,44 @@ const StatCard = ({
     </div>
   </div>
 )
+
+// --- [BARU] Komponen untuk menampilkan waktu Jakarta ---
+const JakartaTime = () => {
+  const [currentTime, setCurrentTime] = useState("")
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      const jakartaTime = now.toLocaleTimeString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      })
+      const jakartaDate = now.toLocaleDateString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })
+      setCurrentTime(`${jakartaDate} | ${jakartaTime}`)
+    }
+
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+      <Clock className="h-4 w-4 text-blue-500" />
+      <span className="font-medium">{currentTime}</span>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -88,15 +126,19 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-800">Selamat Datang, {user?.name || "Pengguna"}!</h1>
             <p className="text-gray-500">Berikut adalah ringkasan aktivitas surat Anda hari ini.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/letters/incoming/create" className="btn btn-primary bg-[#12A168] hover:bg-[#0e7d52]">
-              <Plus className="h-4 w-4 mr-2" />
-              Surat Masuk
-            </Link>
-            <Link href="/letters/outgoing/create" className="btn btn-secondary">
-              <Plus className="h-4 w-4 mr-2" />
-              Surat Keluar
-            </Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* --- [BARU] Tambahkan waktu Jakarta di sini --- */}
+            <JakartaTime />
+            <div className="flex items-center gap-3">
+              <Link href="/letters/incoming/create" className="btn btn-primary bg-[#12A168] hover:bg-[#0e7d52]">
+                <Plus className="h-4 w-4 mr-2" />
+                Surat Masuk
+              </Link>
+              <Link href="/letters/outgoing/create" className="btn btn-secondary">
+                <Plus className="h-4 w-4 mr-2" />
+                Surat Keluar
+              </Link>
+            </div>
           </div>
         </div>
 

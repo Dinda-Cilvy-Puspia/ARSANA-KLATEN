@@ -1,16 +1,16 @@
-// Mendefinisikan generator untuk Prisma Client
+// schema.prisma - VERSI DIPERBAIKI
+
 generator client {
   provider = "prisma-client-js"
 }
 
-// Mendefinisikan koneksi ke database PostgreSQL
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // =====================================
-// MODEL-MODEL UTAMA
+// MODEL-MODEL UTAMA - DIPERBAIKI
 // =====================================
 
 model User {
@@ -23,7 +23,8 @@ model User {
   // Relasi
   incomingLetters     IncomingLetter[]
   outgoingLetters     OutgoingLetter[]
-  createdDispositions Disposition[]    @relation("DispositionCreatedBy")
+  calendarEvents      CalendarEvent[]
+  notifications       Notification[]
 
   // Timestamps
   createdAt           DateTime         @default(now())
@@ -51,16 +52,23 @@ model IncomingLetter {
   eventTime                  String?
   eventLocation              String?
   eventNotes                 String?
+  
+  // ✅ KOREKSI: Srikandi sebagai nomor, bukan metode
   srikandiDispositionNumber  String?
-  dispositionTarget          String
-  overdueNotifiedAt          DateTime?          // ✅ TAMBAHKAN FIELD INI
+  
   letterNature               LetterNature       @default(BIASA)
-  dispositionMethod          DispositionMethod? /// Manual atau Srikandi
+  overdueNotifiedAt          DateTime?
+
+  // ✅ KOREKSI PENAMAAN: Metode pengolahan surat
+  processingMethod           ProcessingMethod   @default(MANUAL)
+  
+  // ✅ KOREKSI PENAMAAN: Target disposisi
+  dispositionTarget          DispositionTarget?
 
   // Relasi
   userId                     String
   user                       User               @relation(fields: [userId], references: [id])
-  dispositions               Disposition[]
+  calendarEvents             CalendarEvent[]
 
   // Timestamps
   createdAt                  DateTime           @default(now())
@@ -70,6 +78,8 @@ model IncomingLetter {
   @@index([userId])
   @@index([receivedDate])
   @@index([letterNature])
+  @@index([processingMethod])
+  @@index([dispositionTarget])
   @@map("incoming_letters")
 }
 
@@ -93,15 +103,21 @@ model OutgoingLetter {
   eventNotes                 String?
   serialNumber               Int?
   classificationCode         String?
+  
+  // ✅ KOREKSI: Srikandi sebagai nomor untuk surat keluar juga
   srikandiDispositionNumber  String?
-  overdueNotifiedAt          DateTime?          // ✅ TAMBAHKAN FIELD INI
+  
+  overdueNotifiedAt          DateTime?
   letterNature               LetterNature       @default(BIASA)
   securityClass              SecurityClass      @default(BIASA)
-  dispositionMethod          DispositionMethod? /// Manual atau Srikandi
+  
+  // ✅ KOREKSI: Metode pengolahan untuk surat keluar
+  processingMethod           ProcessingMethod   @default(MANUAL)
 
   // Relasi
   userId                     String
   user                       User               @relation(fields: [userId], references: [id])
+  calendarEvents             CalendarEvent[]
 
   // Timestamps
   createdAt                  DateTime           @default(now())
@@ -113,25 +129,41 @@ model OutgoingLetter {
   @@map("outgoing_letters")
 }
 
-model Disposition {
-  id                 String          @id @default(cuid())
-  notes              String?
-  dispositionTo      DispositionType
-
-  // Relasi
-  incomingLetterId   String
-  incomingLetter     IncomingLetter  @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
-  createdById        String?
-  createdBy          User?           @relation("DispositionCreatedBy", fields: [createdById], references: [id])
+model CalendarEvent {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  date            DateTime
+  time            String?
+  location        String?
+  type            EventType     @default(MEETING)
+  
+  // Tracking notifikasi
+  notified3Days   Boolean       @default(false)
+  notified1Day    Boolean       @default(false)
+  
+  // Relasi ke Surat (opsional - untuk track asal event)
+  incomingLetterId String?
+  incomingLetter   IncomingLetter? @relation(fields: [incomingLetterId], references: [id])
+  outgoingLetterId String?
+  outgoingLetter   OutgoingLetter? @relation(fields: [outgoingLetterId], references: [id])
+  
+  // Relasi ke User yang membuat
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  
+  // Relasi ke Notifications
+  notifications   Notification[]
 
   // Timestamps
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  // Indeks untuk optimasi query
+  @@index([date])
   @@index([incomingLetterId])
-  @@index([createdById])
-  @@map("dispositions")
+  @@index([outgoingLetterId])
+  @@index([userId])
+  @@map("calendar_events")
 }
 
 model Notification {
@@ -140,22 +172,24 @@ model Notification {
   message   String
   isRead    Boolean          @default(false)
   type      NotificationType @default(INFO)
-
+  
   // Relasi
-  userId    String?          // Bisa null untuk notifikasi global
+  userId    String?          
+  user      User?            @relation(fields: [userId], references: [id])
+  calendarEventId String?    
+  calendarEvent CalendarEvent? @relation(fields: [calendarEventId], references: [id])
 
   // Timestamps
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  // Indeks untuk optimasi query
   @@index([userId])
+  @@index([calendarEventId])
   @@map("notifications")
 }
 
-
 // =====================================
-// ENUMERASI
+// ENUMERASI - DIPERBAIKI
 // =====================================
 
 enum Role {
@@ -175,12 +209,14 @@ enum SecurityClass {
   BIASA
 }
 
-enum DispositionMethod {
+// ✅ KOREKSI: Metode pengolahan surat (Manual/Srikandi)
+enum ProcessingMethod {
   MANUAL
   SRIKANDI
 }
 
-enum DispositionType {
+// ✅ KOREKSI: Target disposisi (UMPEG, BIDANG1, dll)
+enum DispositionTarget {
   UMPEG
   PERENCANAAN
   KAUR_KEUANGAN
@@ -197,4 +233,11 @@ enum NotificationType {
   WARNING
   SUCCESS
   ERROR
+}
+
+enum EventType {
+  MEETING
+  APPOINTMENT 
+  DEADLINE
+  OTHER
 }

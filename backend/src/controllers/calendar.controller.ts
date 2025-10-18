@@ -4,83 +4,61 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  date: Date;
-  location?: string;
-  type: 'incoming' | 'outgoing';
-  letterNumber: string;
-  description?: string;
-}
-
 export const getCalendarEvents = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const startDate = req.query.start ? new Date(req.query.start as string) : new Date();
-    const endDate = req.query.end ? new Date(req.query.end as string) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+    const endDate = req.query.end ? new Date(req.query.end as string) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    // Get incoming letter invitations
-    const incomingInvitations = await prisma.incomingLetter.findMany({
+    // ✅ PERBAIKAN: Query dari CalendarEvent, bukan langsung dari surat
+    const calendarEvents = await prisma.calendarEvent.findMany({
       where: {
-        isInvitation: true,
-        eventDate: {
+        date: {
           gte: startDate,
           lte: endDate
         }
       },
-      select: {
-        id: true,
-        subject: true,
-        eventDate: true,
-        eventLocation: true,
-        letterNumber: true,
-        
-      }
-    });
-
-    // Get outgoing letter invitations
-    const outgoingInvitations = await prisma.outgoingLetter.findMany({
-      where: {
-        isInvitation: true,
-        eventDate: {
-          gte: startDate,
-          lte: endDate
+      include: {
+        incomingLetter: {
+          select: {
+            letterNumber: true,
+            subject: true,
+            sender: true,
+            recipient: true
+          }
+        },
+        outgoingLetter: {
+          select: {
+            letterNumber: true,
+            subject: true,
+            sender: true,
+            recipient: true
+          }
+        },
+        user: {
+          select: {
+            name: true,
+            email: true
+          }
         }
       },
-      select: {
-        id: true,
-        subject: true,
-        eventDate: true,
-        eventLocation: true,
-        letterNumber: true,
-        
+      orderBy: {
+        date: 'asc'
       }
     });
 
-    // Format events
-    const events: CalendarEvent[] = [
-      ...incomingInvitations.map((letter: any) => ({
-        id: letter.id,
-        title: letter.subject,
-        date: letter.eventDate!,
-        location: letter.eventLocation || undefined,
-        type: 'incoming' as const,
-        letterNumber: letter.letterNumber,
-        description: letter.description || undefined
-      })),
-      ...outgoingInvitations.map((letter: any) => ({
-        id: letter.id,
-        title: letter.subject,
-        date: letter.eventDate!,
-        location: letter.eventLocation || undefined,
-        type: 'outgoing' as const,
-        letterNumber: letter.letterNumber,
-        description: letter.description || undefined
-      }))
-    ];
-
-    // Sort by date
-    events.sort((a, b) => a.date.getTime() - b.date.getTime());
+    // Format events untuk frontend
+    const events = calendarEvents.map(event => ({
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      description: event.description,
+      type: event.incomingLetterId ? 'incoming' as const : 'outgoing' as const,
+      letterNumber: event.incomingLetter?.letterNumber || event.outgoingLetter?.letterNumber,
+      letterSubject: event.incomingLetter?.subject || event.outgoingLetter?.subject,
+      createdAt: event.createdAt
+    }));
 
     res.json({ events });
   } catch (error) {
@@ -94,71 +72,36 @@ export const getUpcomingEvents = async (req: AuthenticatedRequest, res: Response
     const limit = parseInt(req.query.limit as string) || 10;
     const now = new Date();
 
-    // Get upcoming invitation events
-    const incomingInvitations = await prisma.incomingLetter.findMany({
+    // ✅ PERBAIKAN: Query dari CalendarEvent dengan pagination
+    const calendarEvents = await prisma.calendarEvent.findMany({
       where: {
-        isInvitation: true,
-        eventDate: {
+        date: {
           gte: now
         }
       },
-      select: {
-        id: true,
-        subject: true,
-        eventDate: true,
-        eventLocation: true,
-        letterNumber: true,
-        
-      },
-      orderBy: { eventDate: 'asc' },
-      take: limit
-    });
-
-    const outgoingInvitations = await prisma.outgoingLetter.findMany({
-      where: {
-        isInvitation: true,
-        eventDate: {
-          gte: now
+      include: {
+        incomingLetter: {
+          select: { letterNumber: true, subject: true }
+        },
+        outgoingLetter: {
+          select: { letterNumber: true, subject: true }
         }
       },
-      select: {
-        id: true,
-        subject: true,
-        eventDate: true,
-        eventLocation: true,
-        letterNumber: true,
-        
-      },
-      orderBy: { eventDate: 'asc' },
+      orderBy: { date: 'asc' },
       take: limit
     });
 
-    // Combine and format events
-    const allEvents: CalendarEvent[] = [
-      ...incomingInvitations.map((letter: any) => ({
-        id: letter.id,
-        title: letter.subject,
-        date: letter.eventDate!,
-        location: letter.eventLocation || undefined,
-        type: 'incoming' as const,
-        letterNumber: letter.letterNumber,
-        description: letter.description || undefined
-      })),
-      ...outgoingInvitations.map((letter: any) => ({
-        id: letter.id,
-        title: letter.subject,
-        date: letter.eventDate!,
-        location: letter.eventLocation || undefined,
-        type: 'outgoing' as const,
-        letterNumber: letter.letterNumber,
-        description: letter.description || undefined
-      }))
-    ];
-
-    // Sort by date and take limit
-    const events = allEvents
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .slice(0, limit);
+    const events = calendarEvents.map(event => ({
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      description: event.description,
+      type: event.incomingLetterId ? 'incoming' as const : 'outgoing' as const,
+      letterNumber: event.incomingLetter?.letterNumber || event.outgoingLetter?.letterNumber,
+      letterSubject: event.incomingLetter?.subject || event.outgoingLetter?.subject
+    }));
 
     res.json({ events });
   } catch (error) {

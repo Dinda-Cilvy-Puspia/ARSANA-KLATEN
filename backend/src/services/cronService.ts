@@ -83,6 +83,9 @@ const processEventReminders = async (letters: LetterWithUser[], type: 'Incoming'
 /**
  * Memeriksa acara mendatang (H-1) dan mengirimkan notifikasi.
  */
+/**
+ * Memeriksa acara mendatang (H-3 dan H-1) dan mengirimkan notifikasi.
+ */
 const checkUpcomingEvents = async () => {
   if (jobStatus.upcomingEvents) {
     logger.warn('Upcoming events job is already running. Skipping.');
@@ -92,26 +95,75 @@ const checkUpcomingEvents = async () => {
   logger.info('Running upcoming events check...');
 
   try {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+    const now = new Date();
+    
+    // ✅ PERBAIKAN: Cek H-3 (3 hari sebelum event)
+    const threeDaysLater = new Date(now);
+    threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+    threeDaysLater.setHours(23, 59, 59, 999);
 
-    const dayAfterTomorrow = new Date(tomorrow);
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+    // ✅ PERBAIKAN: Cek H-1 (1 hari sebelum event)  
+    const oneDayLater = new Date(now);
+    oneDayLater.setDate(oneDayLater.getDate() + 1);
+    oneDayLater.setHours(23, 59, 59, 999);
 
-    const whereClause = {
-      isInvitation: true,
-      eventDate: { gte: tomorrow, lt: dayAfterTomorrow }
-    };
-    const includeUser = { user: { select: { email: true, name: true } } };
+    // Query events yang akan datang dalam 3 hari
+    const upcomingEvents = await prisma.calendarEvent.findMany({
+      where: {
+        date: {
+          gte: now,
+          lte: threeDaysLater
+        },
+        OR: [
+          { notified3Days: false }, // Belum dikirim notif H-3
+          { notified1Day: false }   // Belum dikirim notif H-1
+        ]
+      },
+      include: {
+        user: { select: { email: true, name: true } },
+        incomingLetter: { select: { subject: true, letterNumber: true } },
+        outgoingLetter: { select: { subject: true, letterNumber: true } }
+      }
+    });
 
-    const upcomingIncoming = await prisma.incomingLetter.findMany({ where: whereClause, include: includeUser });
-    const upcomingOutgoing = await prisma.outgoingLetter.findMany({ where: whereClause, include: includeUser });
+    for (const event of upcomingEvents) {
+      const eventDate = new Date(event.date);
+      const daysUntilEvent = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Notifikasi H-3
+      if (daysUntilEvent === 3 && !event.notified3Days) {
+        const title = 'Pengingat Acara (3 Hari Lagi)';
+        const message = `Acara "${event.title}" akan berlangsung dalam 3 hari di ${event.location || 'lokasi belum ditentukan'}`;
+        
+        await createNotification(title, message, 'INFO', event.userId);
+        
+        // Update status notifikasi
+        await prisma.calendarEvent.update({
+          where: { id: event.id },
+          data: { notified3Days: true }
+        });
 
-    await processEventReminders(upcomingIncoming, 'Incoming');
-    await processEventReminders(upcomingOutgoing, 'Outgoing');
+        logger.info(`Sent 3-day reminder for event: ${event.title}`);
+      }
+      
+      // Notifikasi H-1
+      if (daysUntilEvent === 1 && !event.notified1Day) {
+        const title = 'Pengingat Acara (Besok)';
+        const message = `Acara "${event.title}" akan berlangsung besok di ${event.location || 'lokasi belum ditentukan'}`;
+        
+        await createNotification(title, message, 'INFO', event.userId);
+        
+        // Update status notifikasi
+        await prisma.calendarEvent.update({
+          where: { id: event.id },
+          data: { notified1Day: true }
+        });
 
-    logger.info(`Processed ${upcomingIncoming.length + upcomingOutgoing.length} event reminders.`);
+        logger.info(`Sent 1-day reminder for event: ${event.title}`);
+      }
+    }
+
+    logger.info(`Processed ${upcomingEvents.length} upcoming event reminders.`);
   } catch (error) {
     logger.error('Error checking upcoming events:', error);
     await createNotification('System Error', 'Gagal memeriksa acara mendatang.', 'ERROR');

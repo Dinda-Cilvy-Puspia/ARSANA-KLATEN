@@ -13,7 +13,12 @@ import {
   Clock,
   AlertTriangle,
   Info,
-  ClipboardCheck // [DITAMBAHKAN] Ikon baru
+  ClipboardCheck,
+  Download,
+  Share2,
+  Copy,
+  Eye,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIncomingLetter, useDeleteIncomingLetter } from '@/hooks/useApi';
@@ -40,8 +45,13 @@ const natureLabels = {
   PENTING: 'Penting',
 };
 
-const DetailItem = ({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) => (
-  <div className="group">
+const DetailItem = ({ icon: Icon, label, children, className = '' }: { 
+  icon: React.ElementType, 
+  label: string, 
+  children: React.ReactNode,
+  className?: string 
+}) => (
+  <div className={`group ${className}`}>
     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2 mb-2">
       <Icon className="h-4 w-4 text-emerald-600" />
       {label}
@@ -52,11 +62,31 @@ const DetailItem = ({ icon: Icon, label, children }: { icon: React.ElementType, 
   </div>
 );
 
+const QuickActionButton = ({ icon: Icon, label, onClick, variant = 'default' }: {
+  icon: React.ElementType,
+  label: string,
+  onClick: () => void,
+  variant?: 'default' | 'danger'
+}) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+      variant === 'danger' 
+        ? 'text-red-600 hover:bg-red-50 hover:text-red-700' 
+        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+    }`}
+  >
+    <Icon className="h-4 w-4" />
+    {label}
+  </button>
+);
+
 export default function IncomingLetterDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const { isAuthenticated, loading } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   
   const { data: letter, isLoading, error } = useIncomingLetter(id as string);
   const deleteLetterMutation = useDeleteIncomingLetter();
@@ -82,6 +112,35 @@ export default function IncomingLetterDetailPage() {
       }
     );
     setShowDeleteConfirm(false);
+  };
+
+  const handleCopyLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    toast.success('Link berhasil disalin ke clipboard');
+    setShowQuickActions(false);
+  };
+
+  const handlePrint = () => {
+    window.print();
+    setShowQuickActions(false);
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: letter?.subject,
+          text: `Surat: ${letter?.subject}`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      handleCopyLink();
+    }
+    setShowQuickActions(false);
   };
 
   if (loading || isLoading) {
@@ -126,31 +185,84 @@ export default function IncomingLetterDetailPage() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl shadow-lg p-8">
-          <Link
-            href="/letters/incoming"
-            className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-100 transition-colors mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Kembali ke Surat Masuk
-          </Link>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Enhanced Header dengan Quick Actions */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl shadow-lg p-8 relative">
+          <div className="flex items-center justify-between mb-4">
+            <Link
+              href="/letters/incoming"
+              className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-emerald-100 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Kembali ke Surat Masuk
+            </Link>
+            
+            {/* Quick Actions Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowQuickActions(!showQuickActions)}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+              >
+                <Share2 className="h-4 w-4" />
+                Aksi Cepat
+              </button>
+              
+              {showQuickActions && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-10">
+                  <QuickActionButton 
+                    icon={Copy} 
+                    label="Salin Link" 
+                    onClick={handleCopyLink}
+                  />
+                  <QuickActionButton 
+                    icon={Printer} 
+                    label="Cetak" 
+                    onClick={handlePrint}
+                  />
+                  <QuickActionButton 
+                    icon={Share2} 
+                    label="Bagikan" 
+                    onClick={handleShare}
+                  />
+                  <QuickActionButton 
+                    icon={Eye} 
+                    label="Lihat Riwayat" 
+                    onClick={() => {/* TODO: Implement history view */}}
+                  />
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <QuickActionButton 
+                    icon={Trash2} 
+                    label="Hapus Surat" 
+                    onClick={() => setShowDeleteConfirm(true)}
+                    variant="danger"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          
           <div className="md:flex md:items-start md:justify-between gap-6">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${categoryStyle.bg} ${categoryStyle.text} border ${categoryStyle.border}`}>
                   {natureLabels[letter.letterNature as keyof typeof natureLabels]}
                 </span>
                 {letter.isInvitation && (
                   <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                    <Calendar className="h-3 w-3 mr-1" />
                     Undangan
                   </span>
                 )}
-                {/* [DITAMBAHKAN] Badge untuk Tindak Lanjut */}
                 {letter.needsFollowUp && (
                   <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
                     Perlu Tindak Lanjut
+                  </span>
+                )}
+                {letter.dispositionMethod === 'SRIKANDI' && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                    <ClipboardCheck className="h-3 w-3 mr-1" />
+                    Srikandi
                   </span>
                 )}
               </div>
@@ -159,6 +271,7 @@ export default function IncomingLetterDetailPage() {
               </h1>
               <p className="text-sm text-emerald-100">
                 Nomor: <span className="font-semibold text-white">{letter.letterNumber}</span>
+                {letter.letterDate && ` • Tanggal Surat: ${formatDate(letter.letterDate)}`}
               </p>
             </div>
             <div className="flex gap-2 mt-4 md:mt-0">
@@ -180,10 +293,10 @@ export default function IncomingLetterDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Letter Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Content - 3/4 width */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Letter Information Card */}
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -208,14 +321,12 @@ export default function IncomingLetterDetailPage() {
                     </span>
                   </DetailItem>
 
-                  {/* [DITAMBAHKAN] Detail Metode Disposisi */}
                   {letter.dispositionMethod && (
                     <DetailItem icon={ClipboardCheck} label="Metode Disposisi">
                       <span className="font-semibold capitalize">{letter.dispositionMethod.toLowerCase()}</span>
                     </DetailItem>
                   )}
 
-                  {/* [DITAMBAHKAN] Detail Nomor Disposisi Srikandi */}
                   {letter.srikandiDispositionNumber && (
                     <DetailItem icon={FileText} label="No. Disposisi Srikandi">
                       {letter.srikandiDispositionNumber}
@@ -268,7 +379,7 @@ export default function IncomingLetterDetailPage() {
               </div>
             )}
             
-            {/* [DITAMBAHKAN] Blok Informasi Tindak Lanjut */}
+            {/* Follow-up Information */}
             {letter.needsFollowUp && (
               <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-200">
@@ -287,17 +398,12 @@ export default function IncomingLetterDetailPage() {
               </div>
             )}
 
-            {/* Disposition Management */}
-            <DispositionManager
-              incomingLetterId={letter.id}
-              letterNumber={letter.letterNumber}
-              letterSubject={letter.subject}
-            />
+            
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - 1/4 width */}
           <div className="space-y-6">
-            {/* File Attachment */}
+            {/* File Attachment Card */}
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-yellow-50 to-amber-50 px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -313,16 +419,44 @@ export default function IncomingLetterDetailPage() {
               </div>
             </div>
 
-            {/* Metadata */}
+            {/* Quick Stats Card */}
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">Ringkasan</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Status</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    letter.needsFollowUp ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {letter.needsFollowUp ? 'Perlu Tindak' : 'Selesai'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Disposisi</span>
+                  <span className="text-sm font-semibold text-gray-900 capitalize">
+                    {letter.dispositionTarget?.toLowerCase()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Prioritas</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryStyle.bg} ${categoryStyle.text}`}>
+                    {natureLabels[letter.letterNature as keyof typeof natureLabels]}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Metadata Card */}
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900">Metadata</h3>
               </div>
               <div className="p-6 space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                  <span className="text-sm text-gray-600 font-medium">Dibuat oleh</span>
+                <DetailItem icon={User} label="Dibuat oleh" className="!mb-4">
                   <span className="text-sm font-semibold text-gray-900">{letter.user.name}</span>
-                </div>
+                </DetailItem>
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100">
                   <span className="text-sm text-gray-600 font-medium">Tanggal dibuat</span>
                   <span className="text-sm font-semibold text-gray-900">{formatDate(letter.createdAt)}</span>
