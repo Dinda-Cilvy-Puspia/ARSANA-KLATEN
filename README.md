@@ -1,219 +1,164 @@
-# Arsana - Digital Document Archive System
+# 🏢 ARSANA - Sistem Manajemen Arsip Surat Dinas
 
-Arsana adalah sistem arsip surat digital yang menggantikan spreadsheet manual. Sistem ini dibangun dengan Node.js + TypeScript untuk backend dan Next.js + TypeScript untuk frontend.
+Proyek **ARSANA** adalah sistem manajemen arsip surat berbasis web yang digunakan untuk mencatat, menyimpan, dan mengelola **surat masuk** serta **surat keluar** pada instansi pemerintahan.  
+Proyek ini menggunakan **Next.js** untuk frontend dan **Express.js** untuk backend, dengan database **PostgreSQL** dan ORM **Prisma**.
 
-## Fitur Utama
+---
 
-- 🔐 **Autentikasi JWT** dengan peran berbasis (Admin/Staf)
-- 📄 **CRUD Surat Masuk/Keluar** dengan subkategori dan unggah file
-- 📅 **Kalender Otomatis** dari undangan
-- 🔔 **Notifikasi** melalui cron jobs
-- 🎨 **Interface Modern** dengan Tailwind CSS
-- 📱 **Responsif** untuk desktop dan mobile
+## 🚀 Tech Stack
 
-## Teknologi yang Digunakan
+| Layer        | Teknologi yang Digunakan        |
+|---------------|--------------------------------|
+| Frontend      | Next.js + Tailwind CSS         |
+| Backend       | Express.js                     |
+| Database      | PostgreSQL                     |
+| ORM           | Prisma                         |
+| Deployment    | Vercel (Frontend) & Server Internal (Backend) |
 
-### Backend
-- Node.js + TypeScript
-- Express.js
-- PostgreSQL + Prisma ORM
-- JWT untuk autentikasi
-- Multer untuk upload file
-- Node-cron untuk scheduled tasks
-- Nodemailer untuk email notifications
+---
 
-### Frontend
-- Next.js + TypeScript
-- Tailwind CSS
-- Axios untuk API calls
-- React Hook Form
-- React Query untuk state management
-- React Hot Toast untuk notifications
+## ⚙️ Instalasi dan Setup
 
-## Instalasi dan Setup
+Ikuti langkah-langkah berikut agar proyek berjalan dengan lancar:
 
-### 1. Clone Repository
+### 1️⃣ Instal PostgreSQL
+1. Kunjungi situs resmi PostgreSQL:  
+   👉 [https://www.postgresql.org/download/](https://www.postgresql.org/download/)
+2. Unduh versi terbaru sesuai sistem operasi.
+3. Saat instalasi:  
+   - **Jangan centang (uncheck)** opsi **pgAdmin**.  
+   - Masukkan password:  
+     ```
+     postgres
+     ```
+
+---
+
+### 2️⃣ Buat Database
+Buka **CMD** atau **Git Bash**, lalu jalankan:
 ```bash
-git clone <repository-url>
-cd Arsana
+psql -U postgres
+```
+Masukkan password `postgres`, kemudian buat database:
+```sql
+CREATE DATABASE arsana;
+\q
 ```
 
-### 2. Setup Backend
+---
 
+### 3️⃣ Clone / Pull Repo
 ```bash
-cd backend
+git clone <link_repo_git>
+cd ARSANA
+```
+Atau jika sudah pernah clone:
+```bash
+git pull origin main
+```
+
+---
+
+### 4️⃣ Instal Dependensi
+Masuk ke folder **frontend (fe)** dan **backend (be)**, kemudian jalankan:
+```bash
 npm install
 ```
 
-Buat file `.env` dari `.env.example`:
+---
+
+### 5️⃣ Konfigurasi Environment
+Salin file `.env.example` menjadi `.env`, lalu sesuaikan nilai-nilainya.  
+Contoh koneksi database:
 ```bash
-cp .env.example .env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/arsana?schema=public"
 ```
 
-Edit file `.env` dan sesuaikan konfigurasi:
-```env
-NODE_ENV=development
-PORT=3001
-DATABASE_URL="postgresql://username:password@localhost:5432/arsana_db"
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRES_IN=7d
-UPLOAD_PATH=./uploads
+---
 
-# Email configuration for notifications
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-```
-
-Setup database dengan Prisma:
+### 6️⃣ Generate Prisma Client
 ```bash
-npx prisma migrate dev
 npx prisma generate
 ```
 
-Jalankan backend:
+---
+
+### 7️⃣ Sinkronisasi Database
+Coba jalankan salah satu perintah berikut:
+```bash
+npx prisma db push
+```
+Jika gagal, gunakan alternatif:
+```bash
+npx prisma migrate dev
+```
+
+---
+
+### 8️⃣ Jalankan Seed Data
+```bash
+npx prisma db seed
+```
+
+---
+
+### 9️⃣ Jalankan Aplikasi
+Frontend:
+```bash
+npm run dev
+```
+Backend:
 ```bash
 npm run dev
 ```
 
-### 3. Setup Frontend
+---
 
-```bash
-cd ../frontend
-npm install
-```
-
-Pastikan file `.env.local` sudah sesuai:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-```
-
-Jalankan frontend:
-```bash
-npm run dev
-```
-
-### 4. Setup Database PostgreSQL
-
-Pastikan PostgreSQL sudah terinstall dan running, kemudian buat database:
-```sql
-CREATE DATABASE arsana_db;
-```
-
-### 5. Menjalankan Seluruh Aplikasi
-
-Dari root directory:
-```bash
-npm install
-npm run dev
-```
-
-## Struktur Project
+## 🧩 Struktur Folder
 
 ```
-arsana/
-├── backend/                 # Backend API
+ARSANA/
+├── be/                 # Backend (Express + Prisma)
 │   ├── src/
-│   │   ├── controllers/     # Route controllers
-│   │   ├── middleware/      # Custom middleware
-│   │   ├── routes/          # API routes
-│   │   ├── services/        # Business logic
-│   │   ├── utils/           # Utility functions
-│   │   └── app.ts           # Main application file
-│   ├── prisma/              # Database schema
-│   └── uploads/             # Uploaded files
-├── frontend/                # Frontend application
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── hooks/           # Custom hooks
-│   │   ├── lib/             # Utilities and API client
-│   │   ├── pages/           # Next.js pages
-│   │   ├── styles/          # CSS styles
-│   │   └── types/           # TypeScript types
-│   └── public/              # Static files
-└── package.json             # Root package.json
+│   ├── prisma/
+│   ├── .env
+│   └── package.json
+├── fe/                 # Frontend (Next.js)
+│   ├── app/
+│   ├── components/
+│   ├── public/
+│   ├── .env
+│   └── package.json
+└── README.md
 ```
 
-## API Endpoints
+---
 
-### Authentication
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/register` - Register new user
+## 👥 Tim Pengembang
+| Nama | Peran |
+|------|-------|
+| Muhammad Khairul Anam | Fullstack Developer |
+| [Tambahkan anggota tim lain di sini] |  |
 
-### Users
-- `GET /api/users/me` - Get current user
-- `GET /api/users` - Get all users (Admin only)
+---
 
-### Incoming Letters
-- `GET /api/incoming-letters` - Get all incoming letters
-- `GET /api/incoming-letters/:id` - Get single incoming letter
-- `POST /api/incoming-letters` - Create new incoming letter
-- `PUT /api/incoming-letters/:id` - Update incoming letter
-- `DELETE /api/incoming-letters/:id` - Delete incoming letter
+## 📄 Lisensi
+Proyek ini bersifat **internal** dan hanya digunakan untuk kebutuhan instansi yang bersangkutan.  
+Tidak diperbolehkan untuk disebarluaskan tanpa izin dari pengembang utama.
 
-### Outgoing Letters
-- `GET /api/outgoing-letters` - Get all outgoing letters
-- `GET /api/outgoing-letters/:id` - Get single outgoing letter
-- `POST /api/outgoing-letters` - Create new outgoing letter
-- `PUT /api/outgoing-letters/:id` - Update outgoing letter
-- `DELETE /api/outgoing-letters/:id` - Delete outgoing letter
+---
 
-### Calendar
-- `GET /api/calendar/events` - Get calendar events
-- `GET /api/calendar/upcoming` - Get upcoming events
-
-### Notifications
-- `GET /api/notifications` - Get notifications
-- `PUT /api/notifications/:id/read` - Mark notification as read
-- `PUT /api/notifications/read-all` - Mark all notifications as read
-
-## Default Login
-
-Setelah setup, Anda dapat mendaftar user baru melalui halaman `/auth/register` atau membuat user langsung di database.
-
-## Development
-
-### Backend Development
+## 🧠 Catatan
+Jika `npx prisma db push` gagal, gunakan langkah berikut:
 ```bash
-cd backend
-npm run dev        # Start development server
-npm run build      # Build for production
-npm start          # Start production server
+npx prisma migrate dev --name init
+npx prisma db seed
 ```
-
-### Frontend Development
+Kemudian ulangi menjalankan aplikasi dengan:
 ```bash
-cd frontend
-npm run dev        # Start development server
-npm run build      # Build for production
-npm start          # Start production server
-npm run lint       # Run ESLint
+npm run dev
 ```
 
-## Deployment
+---
 
-### Environment Variables untuk Production
-Pastikan semua environment variables sudah diset dengan benar untuk production, terutama:
-- `NODE_ENV=production`
-- `DATABASE_URL` dengan connection string production
-- `JWT_SECRET` dengan secret key yang aman
-- Email SMTP configuration untuk notifications
-
-### Database Migration
-```bash
-cd backend
-npx prisma migrate deploy
-```
-
-## Contributing
-
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
-
-## License
-
-Distributed under the MIT License.
+✨ _“Sistem Arsip Modern untuk Administrasi Dinas yang Efisien.”_
