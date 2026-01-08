@@ -5,7 +5,7 @@
 export type Role = 'ADMIN' | 'STAFF';
 export type LetterCategory = 'GENERAL' | 'INVITATION' | 'OFFICIAL' | 'ANNOUNCEMENT';
 export type LetterNature = 'BIASA' | 'TERBATAS' | 'RAHASIA' | 'SANGAT_RAHASIA' | 'PENTING';
-export type SecurityClass = 'BIASA';
+export type SecurityClass = 'BIASA' | 'TERBATAS';
 
 // ✅ KOREKSI: Metode Pengolahan (Manual/Srikandi)
 export type ProcessingMethod = 'MANUAL' | 'SRIKANDI';

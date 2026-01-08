@@ -9,7 +9,7 @@ import {
   deleteDisposition
 } from '../controllers/disposition.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // All disposition routes require authentication
 router.use(authenticate);

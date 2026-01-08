@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { PrismaClient, DispositionType } from '@prisma/client';
+import { PrismaClient, DispositionTarget } from '@prisma/client';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth';
 
@@ -8,14 +8,14 @@ const prisma = new PrismaClient();
 // ✅ Validasi data sesuai schema baru
 const dispositionSchema = z.object({
   incomingLetterId: z.string().uuid('ID surat masuk tidak valid'),
-  dispositionTo: z.nativeEnum(DispositionType, {
+  dispositionTo: z.nativeEnum(DispositionTarget, {
     errorMap: () => ({ message: 'Tujuan disposisi tidak valid' })
   }),
   notes: z.string().max(1000, 'Catatan maksimal 1000 karakter').optional().nullable()
 });
 
 const updateDispositionSchema = z.object({
-  dispositionTo: z.nativeEnum(DispositionType).optional(),
+  dispositionTo: z.nativeEnum(DispositionTarget).optional(),
   notes: z.string().max(1000, 'Catatan maksimal 1000 karakter').optional().nullable()
 });
 
@@ -40,7 +40,8 @@ export const createDisposition = async (req: AuthenticatedRequest, res: Response
       data: {
         incomingLetterId: data.incomingLetterId,
         dispositionTo: data.dispositionTo,
-        notes: data.notes || null
+        notes: data.notes || null,
+        createdById: req.user!.userId
       },
       include: {
         incomingLetter: {

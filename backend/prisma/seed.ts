@@ -1,4 +1,4 @@
-import { PrismaClient, Role, LetterNature, DispositionMethod } from '@prisma/client';
+import { PrismaClient, Role, LetterNature, ProcessingMethod, DispositionTarget } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import csv from 'csv-parser';
@@ -96,10 +96,12 @@ async function main() {
         letterNature: Object.values(LetterNature).includes(row.letterNature?.toUpperCase()) 
           ? row.letterNature.toUpperCase() 
           : LetterNature.BIASA,
-        dispositionMethod: Object.values(DispositionMethod).includes(row.dispositionMethod?.toUpperCase())
-          ? row.dispositionMethod.toUpperCase()
-          : DispositionMethod.MANUAL,
-        dispositionTarget: 'UMPEG', 
+        processingMethod: Object.values(ProcessingMethod).includes(row.processingMethod?.toUpperCase())
+          ? row.processingMethod.toUpperCase() as ProcessingMethod
+          : ProcessingMethod.MANUAL,
+        dispositionTarget: row.dispositionTarget && Object.values(DispositionTarget).includes(row.dispositionTarget.toUpperCase() as DispositionTarget)
+          ? row.dispositionTarget.toUpperCase() as DispositionTarget
+          : null, 
         userId: defaultUser.id,
       },
     });

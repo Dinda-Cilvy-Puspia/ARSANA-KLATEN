@@ -1,4 +1,5 @@
-// schema.prisma - VERSI DIPERBAIKI
+// schema.prisma
+// Updated to match strsk.md requirements
 
 generator client {
   provider = "prisma-client-js"
@@ -10,7 +11,7 @@ datasource db {
 }
 
 // =====================================
-// MODEL-MODEL UTAMA - DIPERBAIKI
+// MODEL-MODEL UTAMA
 // =====================================
 
 model User {
@@ -25,6 +26,7 @@ model User {
   outgoingLetters     OutgoingLetter[]
   calendarEvents      CalendarEvent[]
   notifications       Notification[]
+  createdDispositions Disposition[]
 
   // Timestamps
   createdAt           DateTime         @default(now())
@@ -35,40 +37,48 @@ model User {
 
 model IncomingLetter {
   id                         String             @id @default(cuid())
-  letterNumber               String             @unique
-  subject                    String
-  sender                     String
-  recipient                  String
-  processor                  String
-  receivedDate               DateTime
-  letterDate                 DateTime?
-  note                       String?
+  
+  // Data Surat Masuk (sesuai strsk.md)
+  letterNumber               String             @unique  // Nomor Surat
+  letterDate                 DateTime?                  // Tanggal Surat
+  receivedDate               DateTime                   // Tanggal Penerimaan Surat
+  letterNature               LetterNature       @default(BIASA)  // Sifat Surat
+  subject                    String                     // Isi Ringkas
+  sender                     String                     // Dari
+  recipient                  String                     // Kepada
+  processor                  String                     // Pengolah
+  note                       String?                    // Keterangan
+  
+  // File attachment
   fileName                   String?
   filePath                   String?
-  isInvitation               Boolean            @default(false)
-  needsFollowUp              Boolean            @default(false)
-  followUpDeadline           DateTime?
-  eventDate                  DateTime?
-  eventTime                  String?
-  eventLocation              String?
-  eventNotes                 String?
   
-  // ✅ KOREKSI: Srikandi sebagai nomor, bukan metode
-  srikandiDispositionNumber  String?
-  
-  letterNature               LetterNature       @default(BIASA)
-  overdueNotifiedAt          DateTime?
-
-  // ✅ KOREKSI PENAMAAN: Metode pengolahan surat
+  // Keterangan (KET): SRIKANDI atau Manual
   processingMethod           ProcessingMethod   @default(MANUAL)
+  srikandiDispositionNumber  String?           // Nomor disposisi dari SRIKANDI (jika ada)
   
-  // ✅ KOREKSI PENAMAAN: Target disposisi
+  // Disposisi (target disposisi)
   dispositionTarget          DispositionTarget?
+  
+  // Label: Surat Undangan (Pelaksanaan)
+  isInvitation               Boolean            @default(false)
+  eventDate                  DateTime?          // Tanggal kegiatan
+  eventTime                  String?            // Waktu kegiatan
+  eventLocation              String?            // Tempat kegiatan
+  eventNotes                 String?            // Catatan tambahan
+  
+  // Label: Surat Perlu Tindakan
+  needsFollowUp              Boolean            @default(false)
+  followUpDeadline           DateTime?          // Tanggal tindakan
+  
+  // Tracking notifikasi
+  overdueNotifiedAt          DateTime?
 
   // Relasi
   userId                     String
   user                       User               @relation(fields: [userId], references: [id])
   calendarEvents             CalendarEvent[]
+  dispositions               Disposition[]
 
   // Timestamps
   createdAt                  DateTime           @default(now())
@@ -80,39 +90,50 @@ model IncomingLetter {
   @@index([letterNature])
   @@index([processingMethod])
   @@index([dispositionTarget])
+  @@index([isInvitation])
+  @@index([needsFollowUp])
   @@map("incoming_letters")
 }
 
 model OutgoingLetter {
   id                         String             @id @default(cuid())
-  letterNumber               String             @unique
-  subject                    String
-  sender                     String
-  recipient                  String
-  processor                  String
-  createdDate                DateTime
-  letterDate                 DateTime
-  executionDate              DateTime?
-  note                       String?
+  
+  // Data Surat Keluar (sesuai strsk.md)
+  letterNumber               String             @unique  // Nomor Surat
+  serialNumber               Int?                       // Nomor Urut
+  letterDate                 DateTime                   // Tanggal Surat
+  createdDate                DateTime                   // Tanggal Pembuatan Surat
+  executionDate              DateTime?                  // Tanggal Pelaksanaan
+  
+  // Klasifikasi
+  securityClass              SecurityClass      @default(BIASA)  // Klasifikasi Keamanan
+  classificationCode         String?                    // Kode Klasifikasi
+  letterNature               LetterNature       @default(BIASA)  // Sifat Surat
+  
+  // Isi Surat
+  subject                    String                     // Isi Ringkas
+  sender                     String                     // Dari
+  recipient                  String                     // Kepada
+  processor                  String                     // Pengolah
+  note                       String?                    // Keterangan
+  
+  // File attachment
   fileName                   String?
   filePath                   String?
-  isInvitation               Boolean            @default(false)
-  eventDate                  DateTime?
-  eventTime                  String?
-  eventLocation              String?
-  eventNotes                 String?
-  serialNumber               Int?
-  classificationCode         String?
   
-  // ✅ KOREKSI: Srikandi sebagai nomor untuk surat keluar juga
-  srikandiDispositionNumber  String?
-  
-  overdueNotifiedAt          DateTime?
-  letterNature               LetterNature       @default(BIASA)
-  securityClass              SecurityClass      @default(BIASA)
-  
-  // ✅ KOREKSI: Metode pengolahan untuk surat keluar
+  // Keterangan (KET): SRIKANDI atau Manual
   processingMethod           ProcessingMethod   @default(MANUAL)
+  srikandiDispositionNumber  String?           // Nomor dari SRIKANDI (jika ada)
+  
+  // Label: Surat Undangan (Pelaksanaan)
+  isInvitation               Boolean            @default(false)
+  eventDate                  DateTime?          // Tanggal kegiatan
+  eventTime                  String?            // Waktu kegiatan
+  eventLocation              String?            // Tempat kegiatan
+  eventNotes                 String?            // Catatan tambahan
+  
+  // Tracking notifikasi
+  overdueNotifiedAt          DateTime?
 
   // Relasi
   userId                     String
@@ -126,6 +147,10 @@ model OutgoingLetter {
   // Indeks untuk optimasi query
   @@index([userId])
   @@index([createdDate])
+  @@index([letterDate])
+  @@index([securityClass])
+  @@index([letterNature])
+  @@index([isInvitation])
   @@map("outgoing_letters")
 }
 
@@ -138,15 +163,17 @@ model CalendarEvent {
   location        String?
   type            EventType     @default(MEETING)
   
-  // Tracking notifikasi
-  notified3Days   Boolean       @default(false)
-  notified1Day    Boolean       @default(false)
+  // Tracking notifikasi (H-7, H-3, H-1)
+  notified7Days   Boolean       @default(false)  // Notifikasi H-7
+  notified3Days   Boolean       @default(false)  // Notifikasi H-3
+  notified1Day    Boolean       @default(false)  // Notifikasi H-1
   
   // Relasi ke Surat (opsional - untuk track asal event)
+  // Event bisa berasal dari surat masuk atau surat keluar
   incomingLetterId String?
-  incomingLetter   IncomingLetter? @relation(fields: [incomingLetterId], references: [id])
+  incomingLetter   IncomingLetter? @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
   outgoingLetterId String?
-  outgoingLetter   OutgoingLetter? @relation(fields: [outgoingLetterId], references: [id])
+  outgoingLetter   OutgoingLetter? @relation(fields: [outgoingLetterId], references: [id], onDelete: Cascade)
   
   // Relasi ke User yang membuat
   userId          String
@@ -163,6 +190,7 @@ model CalendarEvent {
   @@index([incomingLetterId])
   @@index([outgoingLetterId])
   @@index([userId])
+  @@index([type])
   @@map("calendar_events")
 }
 
@@ -170,26 +198,50 @@ model Notification {
   id        String           @id @default(cuid())
   title     String
   message   String
-  isRead    Boolean          @default(false)
+  isRead    Boolean          @default(false)  // Status: Belum dibaca / Sudah dibaca
   type      NotificationType @default(INFO)
   
   // Relasi
   userId    String?          
   user      User?            @relation(fields: [userId], references: [id])
   calendarEventId String?    
-  calendarEvent CalendarEvent? @relation(fields: [calendarEventId], references: [id])
+  calendarEvent CalendarEvent? @relation(fields: [calendarEventId], references: [id], onDelete: Cascade)
 
   // Timestamps
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
   @@index([userId])
+  @@index([isRead])
   @@index([calendarEventId])
+  @@index([createdAt])
   @@map("notifications")
 }
 
+model Disposition {
+  id               String            @id @default(cuid())
+  incomingLetterId String
+  incomingLetter   IncomingLetter    @relation(fields: [incomingLetterId], references: [id], onDelete: Cascade)
+  
+  // Target disposisi
+  dispositionTo    DispositionTarget
+  notes            String?
+  
+  // Tracking
+  createdById      String
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([incomingLetterId])
+  @@index([createdById])
+  @@index([dispositionTo])
+  @@map("dispositions")
+}
+
 // =====================================
-// ENUMERASI - DIPERBAIKI
+// ENUMERASI
 // =====================================
 
 enum Role {
@@ -197,25 +249,27 @@ enum Role {
   STAFF
 }
 
+// Sifat Surat (sesuai strsk.md)
 enum LetterNature {
   BIASA
   TERBATAS
   RAHASIA
   SANGAT_RAHASIA
-  PENTING
 }
 
+// Klasifikasi Keamanan (untuk surat keluar)
 enum SecurityClass {
   BIASA
+  TERBATAS
 }
 
-// ✅ KOREKSI: Metode pengolahan surat (Manual/Srikandi)
+// Keterangan: SRIKANDI atau Manual
 enum ProcessingMethod {
   MANUAL
   SRIKANDI
 }
 
-// ✅ KOREKSI: Target disposisi (UMPEG, BIDANG1, dll)
+// Disposisi (sesuai strsk.md)
 enum DispositionTarget {
   UMPEG
   PERENCANAAN
@@ -233,6 +287,7 @@ enum NotificationType {
   WARNING
   SUCCESS
   ERROR
+  AGENDA_REMINDER  // Untuk notifikasi H-7, H-3
 }
 
 enum EventType {

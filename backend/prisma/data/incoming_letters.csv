@@ -1,26 +1,31 @@
-letterNumber,receivedDate,letterDate,subject,sender,recipient,processor,letterNature,dispositionMethod,note,isInvitation,eventDate,needsFollowUp
-151/A/VIII/2025,01/08/2025,30/07/2025,"Permohonan Data Kependudukan Statistik","BPS Kabupaten Karanganyar","Kepala Dinas","Staf Umum",BIASA,MANUAL,"Untuk ditindaklanjuti",FALSE,,TRUE
-152/B/VIII/2025,04/08/2025,01/08/2025,"Undangan Rapat Koordinasi SIAK Terpusat","Ditjen Dukcapil Kemendagri","Kepala Dinas","Sekretaris Dinas",PENTING,SRIKANDI,"Mohon dihadiri",TRUE,15/08/2025,FALSE
-153/C/VIII/2025,05/08/2025,05/08/2025,"Laporan Bulanan Kepegawaian","Subbag Umum & Kepegawaian","Sekretaris Dinas","Staf Umum",BIASA,MANUAL,"Untuk diarsipkan",FALSE,,FALSE
-154/D/VIII/2025,06/08/2025,02/08/2025,"Pengajuan Permohonan Cuti Tahunan","Ahmad Zulkifli (Pegawai)","Subbag Umum & Kepegawaian","Staf Kepegawaian",BIASA,MANUAL,,FALSE,,FALSE
-155/E/VIII/2025,07/08/2025,01/08/2025,"Permohonan Verifikasi Ijazah","Universitas Sebelas Maret","Kepala Dinas","Staf Umum",TERBATAS,MANUAL,"Segera verifikasi",FALSE,,TRUE
-156/A/VIII/2025,08/08/2025,07/08/2025,"Penawaran Produk ATK","CV. Mitra Jaya","Subbag Umum & Kepegawaian","Staf Umum",BIASA,MANUAL,,FALSE,,FALSE
-157/B/VIII/2025,11/08/2025,08/08/2025,"Pemberitahuan Gangguan Jaringan","PT. Telkom Indonesia","Kabid TIK","Pranata Komputer",PENTING,SRIKANDI,"Info untuk tim IT",FALSE,,FALSE
-158/C/VIII/2025,13/08/2025,12/08/2025,"Permohonan Praktik Kerja Lapangan","SMK Negeri 2 Karanganyar","Kepala Dinas","Staf Umum",BIASA,MANUAL,,FALSE,,FALSE
-159/D/VIII/2025,18/08/2025,15/08/2025,"Surat Edaran Libur Nasional","KemenPAN-RB","Semua Pegawai","Staf Kepegawaian",BIASA,MANUAL,"Ditempel di papan pengumuman",FALSE,,FALSE
-160/E/VIII/2025,20/08/2025,19/08/2025,"Klarifikasi Data Ganda Penduduk","Warga (Budi Santoso)","Kabid Pemanfaatan Data","Analis Data",PENTING,MANUAL,"Perlu investigasi",FALSE,,TRUE
-161/A/VIII/2025,22/08/2025,20/08/2025,"Undangan Sosialisasi IKD","Diskominfo Karanganyar","Kepala Dinas","Sekretaris Dinas",PENTING,SRIKANDI,"Untuk dijadwalkan",TRUE,29/08/2025,FALSE
-162/B/VIII/2025,25/08/2025,22/08/2025,"Laporan Keuangan Bulanan","Bendahara","Kepala Dinas","Staf Keuangan",RAHASIA,MANUAL,"Hanya untuk pimpinan",FALSE,,FALSE
-163/C/VIII/2025,27/08/2025,26/08/2025,"Permintaan Narasumber","Kecamatan Tawangmangu","Kabid PIAK","Staf Bidang",BIASA,MANUAL,,FALSE,,TRUE
-164/D/VIII/2025,29/08/2025,28/08/2025,"Pengantar Dokumen","Inspektorat Daerah","Sekretaris Dinas","Staf Umum",TERBATAS,SRIKANDI,,FALSE,,FALSE
-165/A/IX/2025,01/09/2025,29/08/2025,"Laporan Awal Bulan September","Subbag Perencanaan","Kepala Dinas","Staf Perencanaan",BIASA,MANUAL,"Untuk direview",FALSE,,FALSE
-166/B/IX/2025,03/09/2025,01/09/2025,"Permohonan Data Agregat","Badan Pusat Statistik","Kabid Pemanfaatan Data","Analis Data",PENTING,MANUAL,"Siapkan data yang diminta",FALSE,,TRUE
-167/C/IX/2025,05/09/2025,02/09/2025,"Undangan Rapat Evaluasi Kinerja","Sekretariat Daerah","Semua Kabid","Sekretaris Dinas",PENTING,SRIKANDI,"Wajib Hadir",TRUE,12/09/2025,FALSE
-168/D/IX/2025,08/09/2025,05/09/2025,"Tagihan Internet Bulan Agustus","PT. Telkom Indonesia","Subbag Keuangan","Bendahara",BIASA,MANUAL,"Mohon dibayarkan",FALSE,,TRUE
-169/E/IX/2025,10/09/2025,09/09/2025,"Permohonan Peminjaman Aula","Dharma Wanita Persatuan","Subbag Umum & Kepegawaian","Staf Umum",BIASA,MANUAL,,FALSE,,FALSE
-170/A/IX/2025,15/09/2025,11/09/2025,"Pemberitahuan Audit Internal","Inspektorat Daerah","Kepala Dinas","Sekretaris Dinas",RAHASIA,SRIKANDI,"Siapkan dokumen pendukung",FALSE,,TRUE
-171/B/IX/2025,17/09/2025,16/09/2025,"Pengaduan Pelayanan","Warga (Siti Aminah)","Kepala Dinas","Staf Umum",PENTING,MANUAL,"Segera direspons",FALSE,,TRUE
-172/C/IX/2025,19/09/2025,15/09/2025,"Permohonan Izin Penelitian","Mahasiswa Univ. Diponegoro","Kepala Dinas","Staf Umum",BIASA,MANUAL,,FALSE,,FALSE
-173/D/IX/2025,22/09/2025,19/09/2025,"Undangan Pelatihan Staf","Badan Kepegawaian Daerah","Subbag Umum & Kepegawaian","Staf Kepegawaian",PENTING,MANUAL,"Pilih 2 orang untuk ikut",TRUE,29/09/2025,FALSE
-174/E/IX/2025,25/09/2025,24/09/2025,"Permohonan Pembaruan Data Kontak","Bank Jateng","Subbag Keuangan","Bendahara",TERBATAS,SRIKANDI,,FALSE,,FALSE
-175/A/IX/2025,29/09/2025,26/09/2025,"Laporan Realisasi Anggaran Triwulan III","Subbag Perencanaan","Kepala Dinas","Sekretaris Dinas",RAHASIA,MANUAL,"Untuk ditandatangani",FALSE,,TRUE
+letterNumber,receivedDate,letterDate,subject,sender,recipient,processor,letterNature,processingMethod,note,isInvitation,eventDate,needsFollowUp,dispositionTarget
+001/SM/I/2025,02/01/2025,01/01/2025,"Permohonan Data Kependudukan Tahun 2024","BPS Kabupaten Klaten","Kepala Dinas","Staf Pemanfaatan Data",BIASA,MANUAL,"Untuk ditindaklanjuti",FALSE,,TRUE,PERENCANAAN
+002/SM/I/2025,05/01/2025,03/01/2025,"Undangan Rapat Koordinasi SIAK Terpusat","Ditjen Dukcapil Kemendagri","Kepala Dinas","Sekretaris Dinas",TERBATAS,SRIKANDI,"Mohon dihadiri",TRUE,15/01/2025,FALSE,KABID
+003/SM/I/2025,08/01/2025,05/01/2025,"Laporan Bulanan Kepegawaian Desember 2024","Subbag Umum & Kepegawaian","Sekretaris Dinas","Staf Umum",BIASA,MANUAL,"Untuk diarsipkan",FALSE,,FALSE,UMPEG
+004/SM/I/2025,10/01/2025,08/01/2025,"Pengajuan Permohonan Cuti Tahunan","Ahmad Zulkifli (Pegawai)","Subbag Umum & Kepegawaian","Staf Kepegawaian",BIASA,MANUAL,,FALSE,,FALSE,KAUR_KEUANGAN
+005/SM/I/2025,12/01/2025,10/01/2025,"Permohonan Verifikasi Ijazah","Universitas Sebelas Maret","Kepala Dinas","Staf Umum",TERBATAS,MANUAL,"Segera verifikasi",FALSE,,TRUE,BIDANG1
+006/SM/I/2025,15/01/2025,12/01/2025,"Penawaran Kerjasama Sistem Informasi","PT. Digital Nusantara","Kepala Dinas","Kabid TIK",BIASA,MANUAL,,FALSE,,FALSE,BIDANG2
+007/SM/I/2025,18/01/2025,15/01/2025,"Pemberitahuan Pemeliharaan Server","PT. Telkom Indonesia","Kabid TIK","Pranata Komputer",BIASA,SRIKANDI,"Info untuk tim IT",FALSE,,FALSE,BIDANG2
+008/SM/I/2025,20/01/2025,18/01/2025,"Permohonan Praktik Kerja Lapangan","SMK Negeri 2 Klaten","Kepala Dinas","Staf Umum",BIASA,MANUAL,,FALSE,,FALSE,UMPEG
+009/SM/I/2025,22/01/2025,20/01/2025,"Surat Edaran Hari Libur Nasional","KemenPAN-RB","Semua Pegawai","Staf Kepegawaian",BIASA,MANUAL,"Ditempel di papan pengumuman",FALSE,,FALSE,UMPEG
+010/SM/I/2025,25/01/2025,23/01/2025,"Klarifikasi Data Ganda Penduduk","Warga (Budi Santoso)","Kabid Pemanfaatan Data","Analis Data",TERBATAS,MANUAL,"Perlu investigasi segera",FALSE,,TRUE,PERENCANAAN
+011/SM/II/2025,01/02/2025,30/01/2025,"Undangan Sosialisasi Inovasi Pelayanan","Diskominfo Klaten","Kepala Dinas","Sekretaris Dinas",BIASA,SRIKANDI,"Untuk dijadwalkan",TRUE,10/02/2025,FALSE,KABID
+012/SM/II/2025,05/02/2025,03/02/2025,"Laporan Keuangan Bulanan Januari","Bendahara","Kepala Dinas","Staf Keuangan",RAHASIA,MANUAL,"Hanya untuk pimpinan",FALSE,,FALSE,KAUR_KEUANGAN
+013/SM/II/2025,08/02/2025,06/02/2025,"Permintaan Narasumber Sosialisasi","Kecamatan Ceper","Kabid PIAK","Staf Bidang",BIASA,MANUAL,,FALSE,,TRUE,BIDANG3
+014/SM/II/2025,10/02/2025,08/02/2025,"Pengantar Dokumen Audit","Inspektorat Daerah","Sekretaris Dinas","Staf Umum",TERBATAS,SRIKANDI,"Dokumen terlampir",FALSE,,FALSE,UMPEG
+015/SM/II/2025,12/02/2025,10/02/2025,"Undangan Workshop Aplikasi Pelayanan","Kemendagri","Kepala Dinas","Kabid TIK",BIASA,SRIKANDI,"Wajib hadir",TRUE,20/02/2025,FALSE,BIDANG2
+016/SM/II/2025,15/02/2025,12/02/2025,"Permohonan Data Agregat Kependudukan","Badan Pusat Statistik","Kabid Pemanfaatan Data","Analis Data",TERBATAS,MANUAL,"Siapkan data yang diminta",FALSE,,TRUE,PERENCANAAN
+017/SM/II/2025,18/02/2025,15/02/2025,"Undangan Rapat Evaluasi Kinerja","Sekretariat Daerah","Semua Kabid","Sekretaris Dinas",BIASA,SRIKANDI,"Wajib Hadir",TRUE,25/02/2025,FALSE,KABID
+018/SM/II/2025,20/02/2025,18/02/2025,"Tagihan Internet Bulan Januari","PT. Telkom Indonesia","Subbag Keuangan","Bendahara",BIASA,MANUAL,"Mohon dibayarkan",FALSE,,TRUE,KAUR_KEUANGAN
+019/SM/II/2025,22/02/2025,20/02/2025,"Permohonan Peminjaman Ruang Rapat","Dharma Wanita Persatuan","Subbag Umum & Kepegawaian","Staf Umum",BIASA,MANUAL,,FALSE,,FALSE,UMPEG
+020/SM/III/2025,01/03/2025,28/02/2025,"Pemberitahuan Audit Internal Q1","Inspektorat Daerah","Kepala Dinas","Sekretaris Dinas",RAHASIA,SRIKANDI,"Siapkan dokumen pendukung",FALSE,,TRUE,KABID
+021/SM/III/2025,05/03/2025,03/03/2025,"Pengaduan Pelayanan Publik","Warga (Siti Aminah)","Kepala Dinas","Staf PIAK",TERBATAS,MANUAL,"Segera direspons dan ditindaklanjuti",FALSE,,TRUE,BIDANG3
+022/SM/III/2025,08/03/2025,05/03/2025,"Permohonan Izin Penelitian","Mahasiswa Univ. Sebelas Maret","Kepala Dinas","Staf Umum",BIASA,MANUAL,"Untuk disetujui",FALSE,,FALSE,UMPEG
+023/SM/III/2025,10/03/2025,08/03/2025,"Undangan Pelatihan Aparatur","Badan Kepegawaian Daerah","Subbag Umum & Kepegawaian","Staf Kepegawaian",BIASA,MANUAL,"Pilih 3 orang untuk ikut",TRUE,18/03/2025,FALSE,UMPEG
+024/SM/III/2025,12/03/2025,10/03/2025,"Permohonan Pembaruan Data Rekening","Bank Jateng","Subbag Keuangan","Bendahara",TERBATAS,SRIKANDI,"Segera dilengkapi",FALSE,,TRUE,KAUR_KEUANGAN
+025/SM/III/2025,15/03/2025,12/03/2025,"Laporan Realisasi Anggaran Triwulan I","Subbag Perencanaan","Kepala Dinas","Sekretaris Dinas",RAHASIA,MANUAL,"Untuk ditandatangani",FALSE,,TRUE,PERENCANAAN
+026/SM/III/2025,18/03/2025,15/03/2025,"Undangan Musyawarah Perencanaan Pembangunan","Bappeda Klaten","Kepala Dinas","Sekretaris Dinas",BIASA,SRIKANDI,"Mohon dihadiri",TRUE,25/03/2025,FALSE,KABID
+027/SM/III/2025,20/03/2025,18/03/2025,"Permohonan Legalisir Dokumen","Warga (Eko Prasetyo)","Staf Pelayanan","Staf PIAK",BIASA,MANUAL,"Untuk diproses",FALSE,,FALSE,BIDANG3
+028/SM/III/2025,22/03/2025,20/03/2025,"Surat Peringatan Keterlambatan Laporan","Inspektorat Daerah","Kepala Dinas","Sekretaris Dinas",TERBATAS,SRIKANDI,"Segera ditindaklanjuti",FALSE,,TRUE,UMPEG
+029/SM/IV/2025,02/04/2025,30/03/2025,"Permohonan Data Pemilih Tetap","KPU Klaten","Kabid Pemanfaatan Data","Analis Data",TERBATAS,MANUAL,"Data untuk Pemilu",FALSE,,TRUE,PERENCANAAN
+030/SM/IV/2025,05/04/2025,02/04/2025,"Undangan Sosialisasi E-KTP Baru","Ditjen Dukcapil","Kepala Dinas","Kabid PIAK",BIASA,SRIKANDI,"Penting untuk dihadiri",TRUE,12/04/2025,FALSE,BIDANG3

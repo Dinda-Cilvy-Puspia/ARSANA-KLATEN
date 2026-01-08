@@ -11,7 +11,7 @@ import {
 import { authenticate as auth } from '../middleware/auth'; // Asumsi lokasi middleware auth
 
 // Inisialisasi router dari Express
-const router = Router();
+const router: Router = Router();
 
 /**
  * =================================================================================

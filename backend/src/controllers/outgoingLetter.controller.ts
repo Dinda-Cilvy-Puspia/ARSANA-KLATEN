@@ -68,8 +68,8 @@ const outgoingLetterSchema = z.object({
   sender: z.string().min(1, 'Pengirim wajib diisi'),
   recipient: z.string().min(1, 'Penerima wajib diisi'),
   processor: z.string().min(1, 'Pengolah wajib diisi'),
-  letterNature: z.enum(['BIASA', 'TERBATAS', 'RAHASIA', 'SANGAT_RAHASIA', 'PENTING']).default('BIASA'),
-  securityClass: z.enum(['BIASA']).default('BIASA'),
+  letterNature: z.enum(['BIASA', 'TERBATAS', 'RAHASIA', 'SANGAT_RAHASIA']).default('BIASA'),
+  securityClass: z.enum(['BIASA', 'TERBATAS']).default('BIASA'),
   executionDate: z.string().datetime().optional().nullable(),
   classificationCode: z.string().optional().nullable(),
   serialNumber: z.preprocess(
@@ -171,7 +171,7 @@ export const getOutgoingLetters = async (req: AuthenticatedRequest, res: Respons
       ];
     }
     
-    if (category && typeof category === 'string' && ['BIASA', 'TERBATAS', 'RAHASIA', 'SANGAT_RAHASIA', 'PENTING'].includes(category)) {
+    if (category && typeof category === 'string' && ['BIASA', 'TERBATAS', 'RAHASIA', 'SANGAT_RAHASIA'].includes(category)) {
       where.letterNature = category as any;
     }
 

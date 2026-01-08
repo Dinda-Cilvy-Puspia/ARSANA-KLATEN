@@ -231,8 +231,8 @@ export const useMarkNotificationAsRead = () => {
 };
 
 export const useMarkAllNotificationsAsRead = () => {
-  return useApiMutation(
-    () => apiClient.markAllNotificationsAsRead(),
+  return useApiMutation<any, void>(
+    (_?: void) => apiClient.markAllNotificationsAsRead(),
     ['notifications'],
     'Semua notifikasi ditandai telah dibaca',
     'Gagal menandai semua notifikasi'

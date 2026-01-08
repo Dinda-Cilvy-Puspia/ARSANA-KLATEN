@@ -92,9 +92,52 @@ class ApiClient {
   }
 
   async createIncomingLetter(data: FormData) {
-    // Header 'multipart/form-data' akan diatur otomatis oleh browser
-    const response = await this.client.post('/incoming-letters', data);
-    return response.data;
+    // Debug: Log FormData contents before sending
+    if (process.env.NODE_ENV === 'development') {
+      console.group('📤 Creating Incoming Letter');
+      console.log('📋 FormData Contents:');
+      // Use Array.from for better TypeScript compatibility
+      const entries = Array.from(data.entries());
+      entries.forEach(([key, value]) => {
+        if (value instanceof File) {
+          console.log(`  ${key}:`, {
+            name: value.name,
+            type: value.type,
+            size: `${(value.size / 1024).toFixed(2)} KB`
+          });
+        } else {
+          console.log(`  ${key}:`, value);
+        }
+      });
+      console.groupEnd();
+    }
+
+    try {
+      const response = await this.client.post('/incoming-letters', data);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Success:', response.data);
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error logging for 409 conflicts
+      if (error.response?.status === 409) {
+        const errorData = error.response.data;
+        console.error('❌ Conflict Error (409):', {
+          message: errorData.error,
+          field: errorData.field,
+          details: errorData.details
+        });
+        
+        // Show user-friendly toast
+        const fieldName = errorData.field || 'data';
+        const friendlyMessage = errorData.error || `${fieldName} sudah terdaftar`;
+        toast.error(friendlyMessage);
+      }
+      
+      throw error;
+    }
   }
 
   async updateIncomingLetter(id: string, data: FormData) {
